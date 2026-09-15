@@ -15,6 +15,8 @@ import {
   Settings,
   ShieldAlert,
   ChevronRight,
+  FileText,
+  Calendar,
 } from "lucide-react";
 
 export default function Sidebar() {
@@ -38,6 +40,18 @@ export default function Sidebar() {
       name: "Laporan Kegiatan (LKH)",
       href: "/laporan",
       icon: FileSpreadsheet,
+      roles: ["admin", "atasan", "pegawai"],
+    },
+    {
+      name: "Pengajuan Izin & Cuti",
+      href: "/izin",
+      icon: FileText,
+      roles: ["admin", "atasan", "pegawai"],
+    },
+    {
+      name: "Kalender Kerja",
+      href: "/kalender",
+      icon: Calendar,
       roles: ["admin", "atasan", "pegawai"],
     },
     {

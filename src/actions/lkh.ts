@@ -145,3 +145,193 @@ export async function submitLKH(
     };
   }
 }
+
+/**
+ * Mengambil daftar seluruh LKH yang menunggu persetujuan atasan
+ */
+export async function getPendingLKHList(
+  orgId?: string
+): Promise<LKHRecord[]> {
+  try {
+    let query = adminDb.collection("lkh").where("status", "==", "submitted");
+    if (orgId) {
+      query = query.where("orgId", "==", orgId);
+    }
+    const snap = await query.get();
+    if (!snap.empty) {
+      return snap.docs.map((doc) => doc.data() as LKHRecord);
+    }
+  } catch (error) {
+    console.warn("[Server Action LKH] Ambil pending live offline, gunakan dev store:", (error as Error).message);
+  }
+
+  // Fallback dari dev store
+  const results: LKHRecord[] = [];
+  devLkhStore.forEach((record) => {
+    if (record.status === "submitted") {
+      if (!orgId || record.orgId === orgId) {
+        results.push(record);
+      }
+    }
+  });
+
+  // Jika dev store masih kosong, sediakan 1 contoh antrean bawahan untuk testing instan atasan
+  if (results.length === 0) {
+    const sampleRecord: LKHRecord = {
+      id: "user-asn-001_2026-09-15",
+      userId: "user-asn-001",
+      nip: "19920817 201801 1 002",
+      nama: "Budi Santoso, S.Kom.",
+      orgId: "org-bkpsdm-01",
+      tanggal: "2026-09-15",
+      status: "submitted",
+      totalPoinHarian: 323,
+      targetPoinHarian: 300,
+      isTargetTercapai: true,
+      catatanPegawai: "Mohon persetujuan LKH harian kami, berkas notula dan rekap sudah dilampirkan.",
+      kegiatan: [
+        {
+          id: "keg-demo-1",
+          namaAktivitasBaku: "Memverifikasi berkas kenaikan pangkat",
+          kategoriAktivitas: "Manajerial",
+          deskripsi: "Verifikasi berkas persyaratan usulan kenaikan pangkat PNS periode Oktober",
+          outputKegiatan: "Rekap Berkas Terverifikasi",
+          volumeKegiatan: 2,
+          satuanKegiatan: "Per 10 berkas",
+          jamMulai: "08:00",
+          jamSelesai: "11:30",
+          nilaiPoin: 60,
+          totalPoin: 120,
+        },
+        {
+          id: "keg-demo-2",
+          namaAktivitasBaku: "Mengikuti rapat koordinasi teknis",
+          kategoriAktivitas: "Manajerial",
+          deskripsi: "Rapat koordinasi teknis integrasi database SIASN",
+          outputKegiatan: "Notula Rapat",
+          volumeKegiatan: 1,
+          satuanKegiatan: "Per kegiatan",
+          jamMulai: "13:00",
+          jamSelesai: "15:00",
+          nilaiPoin: 75,
+          totalPoin: 75,
+        },
+        {
+          id: "keg-demo-3",
+          namaAktivitasBaku: "Membuat laporan kinerja",
+          kategoriAktivitas: "Persuratan",
+          deskripsi: "Penyusunan naskah laporan rekapitulasi data pegawai",
+          outputKegiatan: "Dokumen Laporan",
+          volumeKegiatan: 2,
+          satuanKegiatan: "Per dokumen",
+          jamMulai: "15:00",
+          jamSelesai: "16:00",
+          nilaiPoin: 64,
+          totalPoin: 128,
+        },
+      ],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    devLkhStore.set(sampleRecord.id, sampleRecord);
+    results.push(sampleRecord);
+  }
+
+  return results;
+}
+
+/**
+ * Menyetujui LKH bawahan oleh Atasan Langsung
+ */
+export async function approveLKH(
+  lkhId: string,
+  atasanId: string,
+  atasanNama: string,
+  catatanAtasan?: string
+): Promise<{ success: boolean; data?: LKHRecord; message?: string }> {
+  const nowIso = new Date().toISOString();
+
+  let target = devLkhStore.get(lkhId);
+  if (!target) {
+    try {
+      const snap = await adminDb.collection("lkh").doc(lkhId).get();
+      if (snap.exists) {
+        target = snap.data() as LKHRecord;
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  if (!target) {
+    return { success: false, message: "Dokumen LKH tidak ditemukan." };
+  }
+
+  const updated: LKHRecord = {
+    ...target,
+    status: "approved",
+    approvedBy: atasanId,
+    approvedByName: atasanNama,
+    approvedAt: nowIso,
+    catatanAtasan: catatanAtasan || "LKH disetujui sesuai target kinerja.",
+    updatedAt: nowIso,
+  };
+
+  try {
+    await adminDb.collection("lkh").doc(lkhId).set(updated, { merge: true });
+    devLkhStore.set(lkhId, updated);
+    return { success: true, data: updated };
+  } catch (error) {
+    console.warn("[Server Action LKH] Approve live offline, update dev store:", (error as Error).message);
+    devLkhStore.set(lkhId, updated);
+    return { success: true, data: updated, message: "LKH disetujui (Mode Dev)" };
+  }
+}
+
+/**
+ * Menolak/Mengembalikan LKH bawahan untuk perbaikan
+ */
+export async function rejectLKH(
+  lkhId: string,
+  atasanId: string,
+  atasanNama: string,
+  rejectedReason: string
+): Promise<{ success: boolean; data?: LKHRecord; message?: string }> {
+  const nowIso = new Date().toISOString();
+
+  let target = devLkhStore.get(lkhId);
+  if (!target) {
+    try {
+      const snap = await adminDb.collection("lkh").doc(lkhId).get();
+      if (snap.exists) {
+        target = snap.data() as LKHRecord;
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  if (!target) {
+    return { success: false, message: "Dokumen LKH tidak ditemukan." };
+  }
+
+  const updated: LKHRecord = {
+    ...target,
+    status: "rejected",
+    approvedBy: atasanId,
+    approvedByName: atasanNama,
+    rejectedReason,
+    catatanAtasan: `Dikembalikan: ${rejectedReason}`,
+    updatedAt: nowIso,
+  };
+
+  try {
+    await adminDb.collection("lkh").doc(lkhId).set(updated, { merge: true });
+    devLkhStore.set(lkhId, updated);
+    return { success: true, data: updated };
+  } catch (error) {
+    console.warn("[Server Action LKH] Reject live offline, update dev store:", (error as Error).message);
+    devLkhStore.set(lkhId, updated);
+    return { success: true, data: updated, message: "LKH dikembalikan (Mode Dev)" };
+  }
+}
