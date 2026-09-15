@@ -1,0 +1,23 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Kebijakan Penyimpanan: 1 ASN = 1 GB (1.073.741.824 bytes)
+    // Path penyimpanan terisolasi per instansi dan per pegawai ASN
+    match /{orgId}/{userId}/{allPaths=**} {
+      // Hanya pemilik akun yang dapat membaca dan mengunggah berkasnya
+      allow read: if request.auth != null && (request.auth.uid == userId || request.auth.token.role in ['admin', 'atasan']);
+      
+      // Validasi unggahan:
+      // 1. Wajib terautentikasi sesuai ID user
+      // 2. Batas ukuran per berkas tunggal maksimal 15MB
+      // 3. Hanya format kedinasan yang diizinkan (Gambar foto, PDF, dan dokumen Office)
+      allow write: if request.auth != null &&
+        request.auth.uid == userId &&
+        request.resource.size <= 15 * 1024 * 1024 &&
+        request.resource.contentType.matches('image/.*|application/pdf|application/vnd.openxmlformats.*|application/msword');
+        
+      // Menghapus berkas untuk membebaskan kuota penyimpanan 1 GB
+      allow delete: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+}
