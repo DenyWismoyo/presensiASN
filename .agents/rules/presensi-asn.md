@@ -83,6 +83,9 @@ src/
 - ❌ Jangan expose Firebase Admin SDK ke client
 - ❌ Jangan simpan file credential Firebase di repo (gunakan .env.local)
 - ❌ Jangan gunakan `useEffect` untuk data fetching — gunakan React Query atau Server Components
+- ❌ **Dilarang menaruh mock data liar/hardcoded di komponen UI**: Komponen (Dashboard, LKH, Izin, Kalender, dll.) WAJIB me-render data dari React Query hooks atau menampilkan **Clean Empty State** jika belum ada data.
+- ✅ **Single-Source of Truth Seed Data**: Seluruh data inisialisasi demo wajib dipusatkan di `src/data/seedData.ts` untuk 1 kantor percontohan resmi (Solo Teknopark) dan 3 akun ASN (Admin, Atasan, Pegawai) yang saling berelasi.
+
 
 ## Standar Desain Mobile-First & Tampilan Ponsel (PWA)
 - **Prioritas Mobile-First**: Semua halaman dan modul (Login, Dashboard, Presensi, LKH) WAJIB didesain responsif untuk layar ponsel (min. 360px - 430px) tanpa overflow horizontal.

@@ -1,103 +1,12 @@
 import { KantorUnit, GeolocationPoint } from "@/types";
+import { SEED_KANTOR } from "./seedData";
 
-export const DEFAULT_KANTOR_LIST: KantorUnit[] = [
-  {
-    id: "kantor-stp",
-    kodeKantor: "STP-01",
-    namaKantor: "Solo Teknopark (Pusat Vokasi & Inovasi)",
-    kategori: "Kawasan Khusus",
-    alamat: "Jl. Ki Hajar Dewantara No.19, Jebres, Surakarta, Jawa Tengah",
-    koordinat: {
-      lat: -7.558392,
-      lng: 110.857528,
-    },
-    radiusMeter: 200,
-    jamMasukMaksimal: "07:30",
-    jamPulangMinimal: "16:00",
-    orgId: "org-surakarta",
-    isActive: true,
-  },
-  {
-    id: "kantor-balaikota",
-    kodeKantor: "SETDA-01",
-    namaKantor: "Balaikota Surakarta (Gedung Pusat Pemkot)",
-    kategori: "Pusat",
-    alamat: "Jl. Jend. Sudirman No.2, Kp. Baru, Kec. Pasar Kliwon, Surakarta",
-    koordinat: {
-      lat: -7.569300,
-      lng: 110.829600,
-    },
-    radiusMeter: 150,
-    jamMasukMaksimal: "07:30",
-    jamPulangMinimal: "16:00",
-    orgId: "org-surakarta",
-    isActive: true,
-  },
-  {
-    id: "kantor-bkpsdm",
-    kodeKantor: "BKPSDM-01",
-    namaKantor: "Kantor BKPSDM Surakarta",
-    kategori: "OPD / Dinas",
-    alamat: "Kompleks Balaikota, Gedung A Lantai 2, Surakarta",
-    koordinat: {
-      lat: -7.568500,
-      lng: 110.828000,
-    },
-    radiusMeter: 150,
-    jamMasukMaksimal: "07:30",
-    jamPulangMinimal: "16:00",
-    orgId: "org-surakarta",
-    isActive: true,
-  },
-  {
-    id: "kantor-diskominfo",
-    kodeKantor: "KOMINFO-01",
-    namaKantor: "Dinas Komunikasi & Informatika",
-    kategori: "OPD / Dinas",
-    alamat: "Jl. Mayor Kusmanto No.1, Loji Gandrung, Surakarta",
-    koordinat: {
-      lat: -7.566100,
-      lng: 110.819200,
-    },
-    radiusMeter: 150,
-    jamMasukMaksimal: "07:30",
-    jamPulangMinimal: "16:00",
-    orgId: "org-surakarta",
-    isActive: true,
-  },
-  {
-    id: "kantor-kec-jebres",
-    kodeKantor: "KEC-JEBRES",
-    namaKantor: "Kantor Kecamatan Jebres",
-    kategori: "Kecamatan",
-    alamat: "Jl. Kolonel Sutarto No.120, Jebres, Kec. Jebres, Surakarta",
-    koordinat: {
-      lat: -7.554000,
-      lng: 110.852000,
-    },
-    radiusMeter: 120,
-    jamMasukMaksimal: "07:30",
-    jamPulangMinimal: "16:00",
-    orgId: "org-surakarta",
-    isActive: true,
-  },
-  {
-    id: "kantor-kec-banjarsari",
-    kodeKantor: "KEC-BANJARSARI",
-    namaKantor: "Kantor Kecamatan Banjarsari",
-    kategori: "Kecamatan",
-    alamat: "Jl. Adi Sumarmo No.77, Manahan, Kec. Banjarsari, Surakarta",
-    koordinat: {
-      lat: -7.545000,
-      lng: 110.815000,
-    },
-    radiusMeter: 120,
-    jamMasukMaksimal: "07:30",
-    jamPulangMinimal: "16:00",
-    orgId: "org-surakarta",
-    isActive: true,
-  },
-];
+/**
+ * Daftar Kantor Default Demo: 1 Kantor Resmi Solo Teknopark
+ * Kantor lain dapat ditambahkan secara dinamis oleh Administrator via menu Pengaturan.
+ */
+export const DEFAULT_KANTOR_LIST: KantorUnit[] = [SEED_KANTOR];
+
 
 /**
  * Hitung jarak Haversine antara dua titik koordinat GPS (dalam meter)

@@ -13,59 +13,11 @@ import { auth, db } from "./config";
 import { UserProfile, UserRole } from "@/types";
 import { DEFAULT_STORAGE_LIMIT_BYTES } from "../utils";
 
-// Data Master Akun Demo ASN
-export const DEMO_USERS: Record<UserRole, UserProfile> = {
-  pegawai: {
-    id: "user-asn-001",
-    nip: "19920817 201801 1 002",
-    nama: "Budi Santoso, S.Kom.",
-    email: "budi.santoso@asn.go.id",
-    role: "pegawai",
-    jabatan: "Pranata Komputer Ahli Pertama",
-    golongan: "III/a - Penata Muda",
-    instansi: "Badan Kepegawaian dan Pengembangan SDM",
-    departmentId: "dept-ti-01",
-    departmentName: "Bidang Data dan Informasi Kepegawaian",
-    atasanId: "user-asn-002",
-    atasanNama: "Dra. Siti Rahmawati, M.Si.",
-    orgId: "org-bkpsdm-01",
-    nomorHp: "081234567890",
-    storageUsedBytes: 257949696, // ~246.0 MB
-    storageLimitBytes: DEFAULT_STORAGE_LIMIT_BYTES,
-  },
-  atasan: {
-    id: "user-asn-002",
-    nip: "19780412 200502 2 001",
-    nama: "Dra. Siti Rahmawati, M.Si.",
-    email: "siti.rahmawati@asn.go.id",
-    role: "atasan",
-    jabatan: "Kepala Bidang Data dan Informasi",
-    golongan: "IV/b - Pembina Tingkat I",
-    instansi: "Badan Kepegawaian dan Pengembangan SDM",
-    departmentId: "dept-ti-01",
-    departmentName: "Bidang Data dan Informasi Kepegawaian",
-    orgId: "org-bkpsdm-01",
-    nomorHp: "081298765432",
-    storageUsedBytes: 184549376, // ~176.0 MB
-    storageLimitBytes: DEFAULT_STORAGE_LIMIT_BYTES,
-  },
-  admin: {
-    id: "user-asn-000",
-    nip: "19850101 201001 1 005",
-    nama: "Hendra Wijaya, S.STP, M.AP",
-    email: "admin.bkpsdm@asn.go.id",
-    role: "admin",
-    jabatan: "Administrator Kepegawaian Utama",
-    golongan: "III/d - Penata Tingkat I",
-    instansi: "Badan Kepegawaian dan Pengembangan SDM",
-    departmentId: "dept-sekretariat",
-    departmentName: "Sekretariat BKPSDM",
-    orgId: "org-bkpsdm-01",
-    nomorHp: "081377889900",
-    storageUsedBytes: 89128960, // ~85.0 MB
-    storageLimitBytes: DEFAULT_STORAGE_LIMIT_BYTES,
-  },
-};
+import { SEED_USERS } from "@/data/seedData";
+
+// Data Master Akun Demo ASN Terpadu (Solo Teknopark)
+export const DEMO_USERS: Record<UserRole, UserProfile> = SEED_USERS;
+
 
 /**
  * Normalisasi format NIP atau Email kedinasan menjadi format email standar Firebase Auth.

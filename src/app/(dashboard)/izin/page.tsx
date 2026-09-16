@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { uploadAsnFile } from "@/lib/firebase/storage-helpers";
+import { useIzinList, useSubmitIzinMutation } from "@/hooks/useIzin";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,28 +19,17 @@ import {
   FileCheck,
   Send,
   Loader2,
-  Plus,
   Paperclip,
   Building,
+  Inbox,
 } from "lucide-react";
-
-interface PengajuanIzinItem {
-  id: string;
-  jenis: "Cuti Tahunan" | "Izin Alasan Penting" | "Sakit" | "Dinas Luar";
-  tanggalMulai: string;
-  tanggalSelesai: string;
-  jumlahHari: number;
-  alasan: string;
-  dokumenUrl?: string;
-  dokumenNama?: string;
-  status: "menunggu" | "disetujui" | "ditolak";
-  createdAt: string;
-}
 
 export default function IzinPage() {
   const { user, consumeStorage } = useAuth();
+  const { data: riwayat = [], isLoading: isIzinLoading } = useIzinList(user?.id);
+  const submitIzinMutation = useSubmitIzinMutation();
 
-  const [jenis, setJenis] = useState<PengajuanIzinItem["jenis"]>("Cuti Tahunan");
+  const [jenis, setJenis] = useState<"Cuti Tahunan" | "Izin Alasan Penting" | "Sakit" | "Dinas Luar">("Cuti Tahunan");
   const [tanggalMulai, setTanggalMulai] = useState(
     new Date().toISOString().split("T")[0]
   );
@@ -50,34 +40,6 @@ export default function IzinPage() {
   const [fileToUpload, setFileToUpload] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-
-  // Riwayat Pengajuan Demo
-  const [riwayat, setRiwayat] = useState<PengajuanIzinItem[]>([
-    {
-      id: "izin-001",
-      jenis: "Dinas Luar",
-      tanggalMulai: "2026-09-10",
-      tanggalSelesai: "2026-09-11",
-      jumlahHari: 2,
-      alasan: "Menghadiri Rapat Koordinasi Nasional BKN SIASN di Jakarta Pusat",
-      dokumenNama: "Surat_Tugas_KemenPANRB.pdf",
-      dokumenUrl: "#",
-      status: "disetujui",
-      createdAt: "2026-09-08T09:00:00Z",
-    },
-    {
-      id: "izin-002",
-      jenis: "Cuti Tahunan",
-      tanggalMulai: "2026-10-01",
-      tanggalSelesai: "2026-10-03",
-      jumlahHari: 3,
-      alasan: "Keperluan keluarga di luar kota",
-      dokumenNama: "Formulir_Cuti_ASN.pdf",
-      dokumenUrl: "#",
-      status: "menunggu",
-      createdAt: "2026-09-14T14:30:00Z",
-    },
-  ]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -98,45 +60,45 @@ export default function IzinPage() {
     try {
       if (fileToUpload) {
         dokumenNama = fileToUpload.name;
-        // Kurangi kuota storage 1 GB ASN
         consumeStorage(fileToUpload.size);
 
-        // Upload ke Firebase Storage
         const uploadResult = await uploadAsnFile({
           file: fileToUpload,
           fileName: fileToUpload.name,
           userId: user.id,
           orgId: user.orgId,
           type: "dokumen",
-          kegiatanDeskripsi: `Pengajuan ${jenis}: ${alasan}`,
         });
-        dokumenUrl = uploadResult.url;
+
+        if (uploadResult && uploadResult.url) {
+          dokumenUrl = uploadResult.url;
+        }
       }
 
-      const tgl1 = new Date(tanggalMulai);
-      const tgl2 = new Date(tanggalSelesai);
-      const diffTime = Math.abs(tgl2.getTime() - tgl1.getTime());
+      // Hitung selisih hari
+      const dMulai = new Date(tanggalMulai);
+      const dSelesai = new Date(tanggalSelesai);
+      const diffTime = Math.abs(dSelesai.getTime() - dMulai.getTime());
       const jumlahHari = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
 
-      const newItem: PengajuanIzinItem = {
-        id: `izin-${Date.now()}`,
+      await submitIzinMutation.mutateAsync({
+        userId: user.id,
+        nama: user.nama,
+        nip: user.nip,
         jenis,
         tanggalMulai,
         tanggalSelesai,
         jumlahHari,
         alasan,
-        dokumenUrl,
         dokumenNama: dokumenNama || undefined,
-        status: "menunggu",
-        createdAt: new Date().toISOString(),
-      };
+        dokumenUrl: dokumenUrl !== "#" ? dokumenUrl : undefined,
+      });
 
-      setRiwayat([newItem, ...riwayat]);
+      setSuccessMessage(
+        `Permohonan ${jenis} Anda berhasil diajukan ke atasan untuk verifikasi.`
+      );
       setAlasan("");
       setFileToUpload(null);
-      setSuccessMessage(
-        `Permohonan ${jenis} Anda berhasil diajukan dan diteruskan ke Atasan Langsung untuk diverifikasi.`
-      );
     } finally {
       setIsSubmitting(false);
     }
@@ -149,104 +111,104 @@ export default function IzinPage() {
         <div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
             <FileText className="w-6 h-6 text-teal-600" />
-            Pengajuan Izin, Cuti & Dinas Luar ASN
+            Pengajuan Izin, Cuti & Surat Tugas Dinas Luar
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            Layanan terpadu dispensasi kehadiran kerja resmi berbasis peraturan kepegawaian
+            Layanan terintegrasi permohonan ketidakhadiran kerja ASN dengan lampiran surat resmi
           </p>
         </div>
 
         <div className="flex items-center gap-2">
-          <Badge variant="outline" className="text-xs border-teal-500/40 text-teal-700 bg-teal-50 px-3 py-1">
-            Sisa Cuti Tahunan: <strong>9 Hari</strong>
+          <Badge variant="outline" className="text-xs py-1 px-3 border-teal-500/30 text-teal-700 bg-teal-50/50">
+            Hak Cuti Tahunan: 12 Hari
           </Badge>
         </div>
       </div>
 
-      {successMessage && (
-        <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs flex items-center gap-2.5">
-          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-          <span>{successMessage}</span>
-        </div>
-      )}
-
-      {/* Grid Utama: Form Input & Riwayat */}
+      {/* Grid: Form Pengajuan (Kiri) + Riwayat (Kanan) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Kolom Kiri: Form Pengajuan */}
+        {/* Kolom Kiri: Form Input */}
         <div className="lg:col-span-1 space-y-6">
           <Card className="border-slate-200/80 shadow-xs">
-            <CardHeader className="pb-4 border-b border-slate-100">
-              <CardTitle className="text-sm font-bold flex items-center gap-2">
-                <Plus className="w-4 h-4 text-teal-600" />
-                Formulir Pengajuan Baru
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <FileCheck className="w-5 h-5 text-teal-600" />
+                Formulir Pengajuan
               </CardTitle>
-              <CardDescription className="text-xs text-slate-500">
-                Isi rincian permohonan dan lampirkan surat pendukung
+              <CardDescription className="text-xs">
+                Lengkapi rincian tanggal dan dokumen pendukung kedinasan
               </CardDescription>
             </CardHeader>
+            <CardContent>
+              {successMessage && (
+                <div className="mb-4 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span>{successMessage}</span>
+                </div>
+              )}
 
-            <CardContent className="p-4 sm:p-5">
               <form onSubmit={handleSubmit} className="space-y-4 text-xs">
-                {/* Jenis Permohonan */}
                 <div className="space-y-1.5">
-                  <Label className="text-xs text-slate-700">Kategori Permohonan</Label>
+                  <Label htmlFor="jenis" className="text-xs text-slate-700">Jenis Permohonan</Label>
                   <select
+                    id="jenis"
                     value={jenis}
-                    onChange={(e) => setJenis(e.target.value as PengajuanIzinItem["jenis"])}
-                    className="w-full h-10 px-3 rounded-lg border border-slate-300 bg-white text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    onChange={(e) => setJenis(e.target.value as typeof jenis)}
+                    className="w-full h-10 px-3 py-2 text-xs rounded-md border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-teal-500"
                   >
                     <option value="Cuti Tahunan">Cuti Tahunan</option>
                     <option value="Izin Alasan Penting">Izin Alasan Penting</option>
                     <option value="Sakit">Sakit (Surat Dokter)</option>
-                    <option value="Dinas Luar">Tugas Dinas Luar Kantor</option>
+                    <option value="Dinas Luar">Dinas Luar (Surat Tugas)</option>
                   </select>
                 </div>
 
-                {/* Periode Tanggal */}
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <Label className="text-[11px] text-slate-600">Tanggal Mulai</Label>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="tgl-mulai" className="text-xs text-slate-700">Tanggal Mulai</Label>
                     <Input
+                      id="tgl-mulai"
                       type="date"
                       value={tanggalMulai}
                       onChange={(e) => setTanggalMulai(e.target.value)}
-                      className="text-xs h-9 bg-white"
+                      className="text-xs h-9"
                       required
                     />
                   </div>
-                  <div className="space-y-1">
-                    <Label className="text-[11px] text-slate-600">Tanggal Selesai</Label>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="tgl-selesai" className="text-xs text-slate-700">Tanggal Selesai</Label>
                     <Input
+                      id="tgl-selesai"
                       type="date"
                       value={tanggalSelesai}
                       onChange={(e) => setTanggalSelesai(e.target.value)}
-                      className="text-xs h-9 bg-white"
+                      className="text-xs h-9"
                       required
                     />
                   </div>
                 </div>
 
-                {/* Alasan / Keperluan */}
                 <div className="space-y-1.5">
-                  <Label className="text-xs text-slate-700">Alasan & Uraian Kebutuhan</Label>
+                  <Label htmlFor="alasan" className="text-xs text-slate-700">Alasan / Uraian Keperluan</Label>
                   <textarea
+                    id="alasan"
                     rows={3}
-                    placeholder="Jelaskan keperluan izin atau rincian penugasan dinas..."
+                    placeholder="Jelaskan alasan atau agenda kedinasan secara rinci..."
                     value={alasan}
                     onChange={(e) => setAlasan(e.target.value)}
-                    className="w-full p-2.5 rounded-lg border border-slate-300 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    className="w-full rounded-md border border-slate-300 p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-teal-500"
                     required
                   />
                 </div>
 
-                {/* Unggah Berkas Bukti (PDF / Foto) */}
+                {/* Upload Lampiran Dokumen */}
                 <div className="space-y-1.5">
-                  <Label className="text-xs text-slate-700">Lampiran Berkas / Surat Tugas (PDF/Foto)</Label>
-                  <div className="border border-dashed border-slate-300 rounded-lg p-3 text-center space-y-2 hover:bg-slate-50 transition-colors">
+                  <Label className="text-xs text-slate-700">Lampiran Dokumen Bukti (Opsional)</Label>
+                  <div className="border-2 border-dashed border-slate-200 hover:border-teal-400 rounded-xl p-4 text-center transition-colors">
                     <input
                       type="file"
                       id="izin-file"
-                      accept=".pdf,image/*"
+                      accept=".pdf,.jpg,.jpeg,.png"
                       onChange={handleFileChange}
                       className="hidden"
                     />
@@ -293,54 +255,67 @@ export default function IzinPage() {
           </div>
 
           <div className="space-y-3">
-            {riwayat.map((item) => (
-              <Card key={item.id} className="border-slate-200/80 shadow-xs">
-                <CardContent className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div className="space-y-1.5">
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-sm text-slate-900">{item.jenis}</span>
-                      <Badge
-                        variant={
-                          item.status === "disetujui"
-                            ? "default"
-                            : item.status === "menunggu"
-                            ? "secondary"
-                            : "destructive"
-                        }
-                        className="text-[10px] capitalize"
-                      >
-                        {item.status === "menunggu" ? "Menunggu Verifikasi" : item.status}
-                      </Badge>
-                    </div>
-
-                    <p className="text-xs text-slate-600 leading-relaxed">{item.alasan}</p>
-
-                    <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-500 pt-1">
-                      <span>
-                        Periode: <strong>{item.tanggalMulai}</strong> s/d <strong>{item.tanggalSelesai}</strong>
-                      </span>
-                      <span>•</span>
-                      <span>Durasi: <strong>{item.jumlahHari} Hari</strong></span>
-                      {item.dokumenNama && (
-                        <>
-                          <span>•</span>
-                          <span className="flex items-center gap-1 text-teal-700 font-medium">
-                            <Paperclip className="w-3 h-3" />
-                            {item.dokumenNama}
-                          </span>
-                        </>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="text-right sm:self-center shrink-0">
-                    <span className="text-[10px] text-slate-400">
-                      Diajukan: {new Date(item.createdAt).toLocaleDateString("id-ID")}
-                    </span>
-                  </div>
+            {riwayat.length === 0 ? (
+              <Card className="border-slate-200/80 shadow-xs">
+                <CardContent className="py-12 text-center text-slate-400 space-y-2">
+                  <Inbox className="w-10 h-10 mx-auto opacity-40" />
+                  <p className="text-xs">Belum ada permohonan izin atau cuti yang diajukan.</p>
                 </CardContent>
               </Card>
-            ))}
+            ) : (
+              riwayat.map((item) => (
+                <Card key={item.id} className="border-slate-200/80 shadow-xs">
+                  <CardContent className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="space-y-1.5">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-sm text-slate-900">{item.jenis}</span>
+                        <Badge
+                          variant={
+                            item.status === "disetujui"
+                              ? "default"
+                              : item.status === "menunggu"
+                              ? "secondary"
+                              : "destructive"
+                          }
+                          className="text-[10px] capitalize"
+                        >
+                          {item.status === "menunggu" ? "Menunggu Verifikasi" : item.status}
+                        </Badge>
+                      </div>
+
+                      <p className="text-xs text-slate-600 leading-relaxed">{item.alasan}</p>
+
+                      <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-500 pt-1">
+                        <span>
+                          Periode: <strong>{item.tanggalMulai}</strong> s/d <strong>{item.tanggalSelesai}</strong>
+                        </span>
+                        <span>•</span>
+                        <span>Durasi: <strong>{item.jumlahHari} Hari</strong></span>
+                        {item.dokumenNama && (
+                          <>
+                            <span>•</span>
+                            <span className="flex items-center gap-1 text-teal-700 font-medium">
+                              <Paperclip className="w-3 h-3" />
+                              {item.dokumenNama}
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="text-right sm:self-center shrink-0">
+                      <span className="text-[10px] text-slate-400 block">
+                        {new Date(item.createdAt).toLocaleDateString("id-ID", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                        })}
+                      </span>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
           </div>
         </div>
       </div>

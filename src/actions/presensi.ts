@@ -2,9 +2,12 @@
 
 import { adminDb } from "@/lib/firebase/admin";
 import { PresensiRecord, PresensiStatus, GeolocationPoint } from "@/types";
+import { SEED_PRESENSI_SAMPLE } from "@/data/seedData";
 
-// In-Memory store untuk fallback jika Firebase Admin credentials belum dikonfigurasi live
+// In-Memory store dengan data seed resmi Solo Teknopark
 const devPresensiStore = new Map<string, PresensiRecord>();
+devPresensiStore.set(SEED_PRESENSI_SAMPLE.id, SEED_PRESENSI_SAMPLE);
+
 
 // Jam masuk maksimal resmi ASN (07:30 WIB)
 const JAM_MASUK_MAKSIMAL = process.env.NEXT_PUBLIC_JAM_MASUK_MAKSIMAL || "07:30";

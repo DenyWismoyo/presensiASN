@@ -3,9 +3,12 @@
 import { adminDb } from "@/lib/firebase/admin";
 import { LKHRecord, LKHItem, LKHStatus } from "@/types";
 import { TARGET_POIN_HARIAN } from "@/data/masterAktivitas";
+import { SEED_LKH_SAMPLE } from "@/data/seedData";
 
-// Fallback in-memory store jika Firebase Admin credentials belum aktif live
+// Fallback in-memory store dengan data seed resmi Solo Teknopark
 const devLkhStore = new Map<string, LKHRecord>();
+devLkhStore.set(SEED_LKH_SAMPLE.id, SEED_LKH_SAMPLE);
+
 
 function generateLkhDocId(userId: string, tanggal: string): string {
   return `${userId}_${tanggal}`;
@@ -175,69 +178,14 @@ export async function getPendingLKHList(
     }
   });
 
-  // Jika dev store masih kosong, sediakan 1 contoh antrean bawahan untuk testing instan atasan
+  // Jika dev store masih kosong, gunakan SEED_LKH_SAMPLE resmi Solo Teknopark
   if (results.length === 0) {
-    const sampleRecord: LKHRecord = {
-      id: "user-asn-001_2026-09-15",
-      userId: "user-asn-001",
-      nip: "19920817 201801 1 002",
-      nama: "Budi Santoso, S.Kom.",
-      orgId: "org-bkpsdm-01",
-      tanggal: "2026-09-15",
-      status: "submitted",
-      totalPoinHarian: 323,
-      targetPoinHarian: 300,
-      isTargetTercapai: true,
-      catatanPegawai: "Mohon persetujuan LKH harian kami, berkas notula dan rekap sudah dilampirkan.",
-      kegiatan: [
-        {
-          id: "keg-demo-1",
-          namaAktivitasBaku: "Memverifikasi berkas kenaikan pangkat",
-          kategoriAktivitas: "Manajerial",
-          deskripsi: "Verifikasi berkas persyaratan usulan kenaikan pangkat PNS periode Oktober",
-          outputKegiatan: "Rekap Berkas Terverifikasi",
-          volumeKegiatan: 2,
-          satuanKegiatan: "Per 10 berkas",
-          jamMulai: "08:00",
-          jamSelesai: "11:30",
-          nilaiPoin: 60,
-          totalPoin: 120,
-        },
-        {
-          id: "keg-demo-2",
-          namaAktivitasBaku: "Mengikuti rapat koordinasi teknis",
-          kategoriAktivitas: "Manajerial",
-          deskripsi: "Rapat koordinasi teknis integrasi database SIASN",
-          outputKegiatan: "Notula Rapat",
-          volumeKegiatan: 1,
-          satuanKegiatan: "Per kegiatan",
-          jamMulai: "13:00",
-          jamSelesai: "15:00",
-          nilaiPoin: 75,
-          totalPoin: 75,
-        },
-        {
-          id: "keg-demo-3",
-          namaAktivitasBaku: "Membuat laporan kinerja",
-          kategoriAktivitas: "Persuratan",
-          deskripsi: "Penyusunan naskah laporan rekapitulasi data pegawai",
-          outputKegiatan: "Dokumen Laporan",
-          volumeKegiatan: 2,
-          satuanKegiatan: "Per dokumen",
-          jamMulai: "15:00",
-          jamSelesai: "16:00",
-          nilaiPoin: 64,
-          totalPoin: 128,
-        },
-      ],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    devLkhStore.set(sampleRecord.id, sampleRecord);
-    results.push(sampleRecord);
+    devLkhStore.set(SEED_LKH_SAMPLE.id, SEED_LKH_SAMPLE);
+    results.push(SEED_LKH_SAMPLE);
   }
 
   return results;
+
 }
 
 /**

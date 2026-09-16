@@ -23,11 +23,14 @@ import {
   RotateCcw,
 } from "lucide-react";
 
+import { seedDatabaseAction } from "@/actions/seed";
+
 export default function PengaturanKantorPage() {
   const { user } = useAuth();
-  const { data: kantorListFromDb, isLoading } = useKantorList(user?.orgId);
+  const { data: kantorListFromDb, isLoading, refetch } = useKantorList(user?.orgId);
   const saveKantorMutation = useSaveKantorMutation();
   const deleteKantorMutation = useDeleteKantorMutation();
+  const [isSeeding, setIsSeeding] = useState(false);
 
   const offices: KantorUnit[] =
     kantorListFromDb && kantorListFromDb.length > 0 ? kantorListFromDb : DEFAULT_KANTOR_LIST;
@@ -48,14 +51,27 @@ export default function PengaturanKantorPage() {
     namaKantor: "",
     kategori: "OPD / Dinas",
     alamat: "",
-    lat: "-7.568500",
-    lng: "110.828000",
-    radiusMeter: 150,
+    lat: "-7.558392",
+    lng: "110.857528",
+    radiusMeter: 200,
     jamMasukMaksimal: "07:30",
     jamPulangMinimal: "16:00",
   });
 
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+
+  const handleSeedDemoData = async () => {
+    setIsSeeding(true);
+    try {
+      const res = await seedDatabaseAction();
+      setStatusMessage(res.message);
+      await refetch();
+      setTimeout(() => setStatusMessage(null), 4000);
+    } finally {
+      setIsSeeding(false);
+    }
+  };
+
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
@@ -135,7 +151,17 @@ export default function PengaturanKantorPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={handleSeedDemoData}
+            disabled={isSeeding}
+            className="text-xs font-medium h-9 border-slate-300 text-slate-700 hover:bg-slate-100"
+          >
+            <RotateCcw className={`w-3.5 h-3.5 mr-1.5 ${isSeeding ? "animate-spin" : ""}`} />
+            {isSeeding ? "Menyuntikkan Seed..." : "Reset & Inisialisasi Seed Demo (Solo Teknopark)"}
+          </Button>
+
           <Button
             onClick={() => setShowAddForm(!showAddForm)}
             className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold h-9 shadow-sm"

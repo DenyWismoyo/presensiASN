@@ -1,8 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useMemo } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
+import { usePresensiHarian, useRiwayatPresensi } from "@/hooks/usePresensi";
+import { useLKHHarian } from "@/hooks/useLKH";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -18,11 +20,58 @@ import {
   FileText,
   Building,
   UserCheck2,
+  Inbox,
+  Clock,
 } from "lucide-react";
 
 export default function DashboardPage() {
   const { user } = useAuth();
-  const [isCheckedIn, setIsCheckedIn] = useState(false);
+  const todayDateStr = useMemo(() => new Date().toISOString().split("T")[0], []);
+
+  // Ambil data presensi hari ini
+  const { data: presensiToday } = usePresensiHarian(user?.id, todayDateStr);
+  const { data: riwayatPresensi = [] } = useRiwayatPresensi(user?.id, 30);
+  const { data: lkhToday } = useLKHHarian(user?.id, todayDateStr);
+
+  const isCheckedIn = Boolean(presensiToday?.checkIn?.waktu);
+  const checkInTimeStr = presensiToday?.checkIn?.waktu
+    ? new Date(presensiToday.checkIn.waktu).toLocaleTimeString("id-ID", {
+        hour: "2-digit",
+        minute: "2-digit",
+      }) + " WIB"
+    : null;
+
+  const checkOutTimeStr = presensiToday?.checkOut?.waktu
+    ? new Date(presensiToday.checkOut.waktu).toLocaleTimeString("id-ID", {
+        hour: "2-digit",
+        minute: "2-digit",
+      }) + " WIB"
+    : null;
+
+  // Hitung statistik presensi dari riwayat nyata
+  const stats = useMemo(() => {
+    let hadir = 0;
+    let terlambat = 0;
+    let izin = 0;
+
+    riwayatPresensi.forEach((r) => {
+      if (r.status === "hadir") hadir++;
+      else if (r.status === "terlambat") terlambat++;
+      else if (["izin", "sakit", "cuti"].includes(r.status)) izin++;
+    });
+
+    const totalHari = riwayatPresensi.length || 1;
+    const rate = Math.round((hadir / totalHari) * 100);
+
+    return {
+      hadirHari: hadir,
+      terlambatKali: terlambat,
+      izinHari: izin,
+      rate: Math.min(100, Math.max(0, rate)),
+    };
+  }, [riwayatPresensi]);
+
+  const kegiatanList = lkhToday?.kegiatan || [];
 
   return (
     <div className="space-y-6">
@@ -33,7 +82,7 @@ export default function DashboardPage() {
           <div className="space-y-2 max-w-2xl">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-200 text-xs font-medium">
               <Building className="w-3.5 h-3.5 text-emerald-300" />
-              {user?.instansi || "Badan Kepegawaian dan Pengembangan SDM"}
+              {user?.instansi || "Pemerintah Kota Surakarta - Solo Teknopark"}
             </div>
             <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight">
               Selamat Bertugas, {user?.nama || "Pegawai ASN"}
@@ -74,51 +123,46 @@ export default function DashboardPage() {
                 Presensi Hari Ini
               </CardTitle>
               <CardDescription className="text-xs">
-                Verifikasi GPS dan swafoto selfie
+                Verifikasi lokasi GPS satelit & swafoto dinas
               </CardDescription>
             </div>
             <Badge
               variant={isCheckedIn ? "default" : "warning"}
               className="text-xs px-2.5 py-0.5"
             >
-              {isCheckedIn ? "Sudah Check-In" : "Belum Check-In"}
+              {isCheckedIn ? "Sudah Check-In ✅" : "Belum Presensi Masuk"}
             </Badge>
           </CardHeader>
           <CardContent className="space-y-4 pt-1">
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/70 space-y-2">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-slate-500">Jam Masuk Ketetapan:</span>
-                <span className="font-semibold text-slate-800">07:30 WIB</span>
+            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/70 space-y-2 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500">Waktu Masuk:</span>
+                <span className="font-semibold text-slate-800">
+                  {checkInTimeStr || "Belum terekam (Batas 07:30 WIB)"}
+                </span>
               </div>
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-slate-500">Jam Pulang Ketetapan:</span>
-                <span className="font-semibold text-slate-800">16:00 WIB</span>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500">Waktu Pulang:</span>
+                <span className="font-semibold text-slate-800">
+                  {checkOutTimeStr || "Belum terekam (Minimal 16:00 WIB)"}
+                </span>
               </div>
-              <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-200">
+              <div className="flex items-center justify-between pt-1 border-t border-slate-200">
                 <span className="text-slate-500 flex items-center gap-1">
                   <MapPin className="w-3.5 h-3.5 text-emerald-600" />
-                  Status Lokasi Kantor:
+                  Lokasi Kantor:
                 </span>
                 <span className="font-semibold text-emerald-700 flex items-center gap-1">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                  Dalam Radius (45m)
+                  {presensiToday?.namaKantor || user?.namaKantor || "Solo Teknopark"}
                 </span>
               </div>
             </div>
 
             <div className="flex items-center justify-between gap-3">
-              <Button
-                onClick={() => setIsCheckedIn(!isCheckedIn)}
-                variant={isCheckedIn ? "outline" : "default"}
-                className="w-full text-xs h-9 font-medium"
-              >
-                {isCheckedIn
-                  ? "Batalkan Simulasi Check-In"
-                  : "Simulasi Check-In Instan (07:25 WIB)"}
-              </Button>
-              <Link href="/presensi" className="shrink-0">
-                <Button variant="ghost" size="sm" className="text-xs text-emerald-700">
-                  Detail <ArrowUpRight className="w-3.5 h-3.5 ml-1" />
+              <Link href="/presensi" className="w-full">
+                <Button className="w-full text-xs h-9 font-medium bg-emerald-600 hover:bg-emerald-700 text-white">
+                  <Clock className="w-4 h-4 mr-1.5" />
+                  {isCheckedIn ? "Lihat Status / Check-Out Pulang" : "Lakukan Presensi Masuk Sekarang"}
                 </Button>
               </Link>
             </div>
@@ -134,48 +178,47 @@ export default function DashboardPage() {
                 LKH Harian (Kegiatan)
               </CardTitle>
               <CardDescription className="text-xs">
-                Laporan pelaksanaan tugas ASN hari ini
+                Laporan pelaksanaan tugas kinerja ASN hari ini
               </CardDescription>
             </div>
-            <Badge variant="info" className="text-xs px-2.5 py-0.5">
-              Draft (2 Kegiatan)
+            <Badge
+              variant={lkhToday?.status === "approved" ? "default" : lkhToday?.status === "submitted" ? "info" : "secondary"}
+              className="text-xs px-2.5 py-0.5 capitalize"
+            >
+              {lkhToday?.status ? `Status: ${lkhToday.status}` : "Belum Ada LKH"}
             </Badge>
           </CardHeader>
           <CardContent className="space-y-4 pt-1">
-            <div className="space-y-2">
-              <div className="p-3 rounded-lg bg-slate-50 border border-slate-200/70 text-xs flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <div className="font-semibold text-slate-800">
-                    Pemeliharaan Basis Data Kepegawaian SIMPEG
-                  </div>
-                  <div className="text-[11px] text-slate-500">
-                    08:30 - 11:30 WIB • 1 Berkas Laporan • 2 Foto Bukti
-                  </div>
-                </div>
-                <Badge variant="secondary" className="text-[10px]">
-                  Tersimpan
-                </Badge>
+            {kegiatanList.length === 0 ? (
+              <div className="p-6 rounded-xl bg-slate-50 border border-slate-200/70 text-center text-slate-400 space-y-1.5">
+                <Inbox className="w-8 h-8 mx-auto opacity-40" />
+                <p className="text-xs">Belum ada kegiatan kinerja yang dicatat hari ini.</p>
               </div>
-
-              <div className="p-3 rounded-lg bg-slate-50 border border-slate-200/70 text-xs flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <div className="font-semibold text-slate-800">
-                    Verifikasi Dokumen Kenaikan Pangkat ASN Gol. III
+            ) : (
+              <div className="space-y-2">
+                {kegiatanList.slice(0, 2).map((item) => (
+                  <div
+                    key={item.id}
+                    className="p-3 rounded-lg bg-slate-50 border border-slate-200/70 text-xs flex items-center justify-between"
+                  >
+                    <div className="space-y-0.5">
+                      <div className="font-semibold text-slate-800">{item.deskripsi}</div>
+                      <div className="text-[11px] text-slate-500">
+                        {item.jamMulai} - {item.jamSelesai} • Output: {item.outputKegiatan}
+                      </div>
+                    </div>
+                    <Badge variant="secondary" className="text-[10px]">
+                      +{item.totalPoin} Poin
+                    </Badge>
                   </div>
-                  <div className="text-[11px] text-slate-500">
-                    13:00 - 15:00 WIB • 12 Berkas Dokumen
-                  </div>
-                </div>
-                <Badge variant="secondary" className="text-[10px]">
-                  Tersimpan
-                </Badge>
+                ))}
               </div>
-            </div>
+            )}
 
             <div className="flex items-center justify-between gap-3 pt-1">
               <Link href="/laporan" className="w-full">
                 <Button className="w-full text-xs h-9 bg-teal-600 hover:bg-teal-700 text-white font-medium">
-                  + Tambah / Submit LKH Hari Ini
+                  {kegiatanList.length > 0 ? "Buka / Lanjutkan LKH Hari Ini" : "+ Tambah Kegiatan LKH Hari Ini"}
                 </Button>
               </Link>
             </div>
@@ -183,16 +226,16 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      {/* Statistik Kehadiran Bulanan */}
+      {/* Statistik Kehadiran Bulanan Berdasarkan Riwayat Nyata */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <Card className="border-slate-200/80 shadow-xs p-4 space-y-1 bg-white">
           <div className="flex items-center justify-between">
             <span className="text-xs text-slate-500 font-medium">Hadir Tepat Waktu</span>
             <CheckCircle2 className="w-4 h-4 text-emerald-600" />
           </div>
-          <div className="text-2xl font-bold text-slate-900">18 Hari</div>
+          <div className="text-2xl font-bold text-slate-900">{stats.hadirHari} Hari</div>
           <div className="text-[11px] text-emerald-600 flex items-center gap-1 font-medium">
-            <TrendingUp className="w-3 h-3" /> 95% Tingkat Kehadiran
+            <TrendingUp className="w-3 h-3" /> Rekap Bulan Ini
           </div>
         </Card>
 
@@ -201,8 +244,8 @@ export default function DashboardPage() {
             <span className="text-xs text-slate-500 font-medium">Terlambat</span>
             <AlertCircle className="w-4 h-4 text-amber-500" />
           </div>
-          <div className="text-2xl font-bold text-slate-900">1 Kali</div>
-          <div className="text-[11px] text-amber-600">Total 12 Menit</div>
+          <div className="text-2xl font-bold text-slate-900">{stats.terlambatKali} Kali</div>
+          <div className="text-[11px] text-amber-600">Evaluasi Disiplin ASN</div>
         </Card>
 
         <Card className="border-slate-200/80 shadow-xs p-4 space-y-1 bg-white">
@@ -210,18 +253,20 @@ export default function DashboardPage() {
             <span className="text-xs text-slate-500 font-medium">Izin / Cuti Resmi</span>
             <CalendarDays className="w-4 h-4 text-blue-500" />
           </div>
-          <div className="text-2xl font-bold text-slate-900">1 Hari</div>
-          <div className="text-[11px] text-blue-600">Surat Cuti Terlampir</div>
+          <div className="text-2xl font-bold text-slate-900">{stats.izinHari} Hari</div>
+          <div className="text-[11px] text-blue-600">Terlampir Surat Resmi</div>
         </Card>
 
         <Card className="border-slate-200/80 shadow-xs p-4 space-y-1 bg-white">
           <div className="flex items-center justify-between">
-            <span className="text-xs text-slate-500 font-medium">LKH Disetujui</span>
+            <span className="text-xs text-slate-500 font-medium">Penilai Kinerja</span>
             <FileText className="w-4 h-4 text-teal-600" />
           </div>
-          <div className="text-2xl font-bold text-slate-900">19 Laporan</div>
+          <div className="text-sm font-bold text-slate-900 truncate">
+            {user?.atasanNama || "Kepala Unit Kerja"}
+          </div>
           <div className="text-[11px] text-teal-600 flex items-center gap-1">
-            <UserCheck2 className="w-3 h-3" /> Oleh Dra. Siti Rahmawati
+            <UserCheck2 className="w-3 h-3" /> Atasan Langsung
           </div>
         </Card>
       </div>

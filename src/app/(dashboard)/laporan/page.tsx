@@ -80,54 +80,8 @@ export default function LaporanPage() {
     }
   }, [serverLKH]);
 
-  // Daftar Kegiatan Awal yang terpetakan ke Kamus 152 Master Aktivitas
-  const [kegiatanList, setKegiatanList] = useState<LKHItem[]>([
-    {
-      id: "keg-1",
-      aktivitasId: 66,
-      namaAktivitasBaku: "Memverifikasi",
-      kategoriAktivitas: "Manajerial",
-      deskripsi: "Melakukan verifikasi berkas dan keabsahan usulan kenaikan pangkat PNS",
-      outputKegiatan: "Dokumen Rekapitulasi Berkas Verifikasi",
-      volumeKegiatan: 2,
-      satuanKegiatan: "Per 10 berkas",
-      jamMulai: "08:00",
-      jamSelesai: "11:30",
-      nilaiPoin: 60,
-      totalPoin: 120, // 2 * 60
-      lampiranFotoUrls: ["https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=300&auto=format&fit=crop&q=80"],
-      lampiranDokumenUrls: ["Rekap_KP_Oktober_2026.pdf"],
-    },
-    {
-      id: "keg-2",
-      aktivitasId: 111,
-      namaAktivitasBaku: "Mengikuti rapat (Dalam Daerah)",
-      kategoriAktivitas: "Manajerial",
-      deskripsi: "Mengikuti rapat koordinasi teknis integrasi sistem presensi dan SKP",
-      outputKegiatan: "Notula Rapat & Berita Acara Kesepakatan Teknis",
-      volumeKegiatan: 1,
-      satuanKegiatan: "Per kegiatan",
-      jamMulai: "13:00",
-      jamSelesai: "15:00",
-      nilaiPoin: 75,
-      totalPoin: 75,
-      lampiranFotoUrls: ["https://images.unsplash.com/photo-1517048676732-d65bc937f952?w=300&auto=format&fit=crop&q=80"],
-    },
-    {
-      id: "keg-3",
-      aktivitasId: 41,
-      namaAktivitasBaku: "Membuat laporan",
-      kategoriAktivitas: "Persuratan",
-      deskripsi: "Menyusun laporan evaluasi tindak lanjut hasil rapat koordinasi kepegawaian",
-      outputKegiatan: "Naskah Laporan Hasil Kegiatan",
-      volumeKegiatan: 2,
-      satuanKegiatan: "Per kegiatan",
-      jamMulai: "15:00",
-      jamSelesai: "16:00",
-      nilaiPoin: 64,
-      totalPoin: 128, // 2 * 64
-    },
-  ]);
+  // Daftar Kegiatan Harian (dimuat secara riil dari server/Firestore)
+  const [kegiatanList, setKegiatanList] = useState<LKHItem[]>([]);
 
   // Total Poin Harian Terakumulasi
   const totalPoinHarian = useMemo(() => {
@@ -135,35 +89,8 @@ export default function LaporanPage() {
   }, [kegiatanList]);
 
   // Daftar berkas yang tersimpan di cloud storage 1 GB ASN
-  const [savedFiles, setSavedFiles] = useState<SavedAttachment[]>([
-    {
-      id: "file-1",
-      name: "Rekap_KP_Oktober_2026.pdf",
-      sizeBytes: 2516582, // ~2.4 MB
-      type: "dokumen",
-      url: "#",
-      uploadedAt: "Hari ini, 11:35 WIB",
-      kegiatanTitle: "Verifikasi usulan kenaikan pangkat",
-    },
-    {
-      id: "file-2",
-      name: "Dokumentasi_Verifikasi_Berkas.jpg",
-      sizeBytes: 1258291, // ~1.2 MB
-      type: "foto",
-      url: "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=800&auto=format&fit=crop&q=80",
-      uploadedAt: "Hari ini, 11:32 WIB",
-      kegiatanTitle: "Verifikasi usulan kenaikan pangkat",
-    },
-    {
-      id: "file-3",
-      name: "Foto_Rakor_Dinas_Kominfo.jpg",
-      sizeBytes: 1572864, // ~1.5 MB
-      type: "foto",
-      url: "https://images.unsplash.com/photo-1517048676732-d65bc937f952?w=800&auto=format&fit=crop&q=80",
-      uploadedAt: "Hari ini, 15:32 WIB",
-      kegiatanTitle: "Rakor teknis integrasi SKP",
-    },
-  ]);
+  const [savedFiles, setSavedFiles] = useState<SavedAttachment[]>([]);
+
 
   // Form input baru
   const [selectedAktivitas, setSelectedAktivitas] = useState<AktivitasASN | null>(null);

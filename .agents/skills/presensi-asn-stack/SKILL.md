@@ -153,3 +153,16 @@ src/app/(dashboard)/
   kalender/     - Kalender kerja ASN
   izin/         - Pengajuan cuti dan izin
 `
+---
+
+## Kebijakan Zero Scattered Mock Data & Single-Source Seed Data
+
+- **Pembersihan Total Mock**:
+  - Dilarang keras menaruh mock data array statis di halaman UI (laporan/page.tsx, izin/page.tsx, kalender/page.tsx, page.tsx).
+  - Halaman UI wajib me-render data riil dari TanStack Query hooks atau menampilkan Clean Empty State jika data belum tersedia.
+- **Single-Source of Truth Seed**:
+  - Seluruh data demo resmi dipusatkan di src/data/seedData.ts:
+    - SEED_KANTOR: Solo Teknopark Surakarta (STP-01, radius 200m).
+    - SEED_USERS: 3 akun ASN resmi (Admin Hendra Wijaya, Atasan Dra. Siti Rahmawati, Pegawai Budi Santoso).
+    - SEED_PRESENSI_SAMPLE & SEED_LKH_SAMPLE.
+  - Fungsi seedDatabaseAction() pada src/actions/seed.ts dapat dipicu melalui tombol *Reset & Inisialisasi Seed Demo* di halaman Pengaturan untuk menyuntikkan data seed ke database Firestore.

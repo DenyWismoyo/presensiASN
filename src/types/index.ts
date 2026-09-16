@@ -6,8 +6,10 @@ export type PresensiStatus =
   | "izin"
   | "sakit"
   | "cuti"
+  | "dinas"
   | "alpa"
   | "libur";
+
 
 export type LKHStatus = "draft" | "submitted" | "approved" | "rejected";
 
