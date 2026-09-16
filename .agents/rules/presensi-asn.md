@@ -22,8 +22,12 @@ Selalu gunakan library berikut sesuai kebutuhan:
 ## Konvensi Kode
 - Gunakan **Server Components** sebagai default; tambahkan `"use client"` hanya jika perlu interaktivitas
 - Semua API calls harus melalui **Route Handlers** (`app/api/`) atau **Server Actions**
+- **Project Firebase Resmi**: `teknopark-surakarta`
+- **Firestore Named Database**: Wajib gunakan database `"presensi-pegawai"`:
+  `getFirestore(app, process.env.NEXT_PUBLIC_FIREBASE_DATABASE_ID || "presensi-pegawai")`
+- **Firebase Storage Root**: Wajib gunakan prefix namespace `"presensi-pegawai/"`:
+  `presensi-pegawai/{orgId}/{userId}/{year}/{month}/{filename}`
 - Firestore rules harus ketat: pegawai hanya bisa akses data sendiri, admin bisa semua
-- Upload file ke Firebase Storage dengan path: `/{orgId}/{userId}/{year}/{month}/{filename}`
 - Semua tanggal disimpan dalam format ISO 8601 UTC di Firestore
 
 ## Struktur Folder Next.js

@@ -31,12 +31,12 @@ function getAdminApp(): App {
       } catch (err) {
         console.warn("[Firebase Admin] Gagal parse cert, fallback ke mock app:", err);
         adminApp = initializeApp({
-          projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "presensi-asn-dev",
+          projectId: process.env.FIREBASE_ADMIN_PROJECT_ID || "teknopark-surakarta",
         });
       }
     } else {
       adminApp = initializeApp({
-        projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "presensi-asn-dev",
+        projectId: process.env.FIREBASE_ADMIN_PROJECT_ID || "teknopark-surakarta",
       });
     }
   } else {
@@ -45,6 +45,8 @@ function getAdminApp(): App {
   return adminApp;
 }
 
-export const adminDb = getFirestore(getAdminApp());
+const databaseId = process.env.FIREBASE_DATABASE_ID || "presensi-pegawai";
+
+export const adminDb = getFirestore(getAdminApp(), databaseId);
 export const adminAuth = getAuth(getAdminApp());
 export const adminStorage = getStorage(getAdminApp());

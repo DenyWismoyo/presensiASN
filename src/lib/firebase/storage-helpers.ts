@@ -14,19 +14,20 @@ export interface UploadFileOptions {
 
 /**
  * Membuat struktur path penyimpanan hierarkis resmi ASN:
- * /{orgId}/{userId}/{year}/{month}/{uniqueFilename}
+ * /presensi-pegawai/{orgId}/{userId}/{year}/{month}/{uniqueFilename}
  */
 export function generateAsnStoragePath(
   orgId: string,
   userId: string,
   fileName: string
 ): string {
+  const rootFolder = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_FOLDER || "presensi-pegawai";
   const now = new Date();
   const year = now.getFullYear();
   const month = String(now.getMonth() + 1).padStart(2, "0");
   const cleanName = fileName.replace(/[^a-zA-Z0-9._-]/g, "_");
   const uniquePrefix = Date.now().toString(36);
-  return `${orgId}/${userId}/${year}/${month}/${uniquePrefix}_${cleanName}`;
+  return `${rootFolder}/${orgId}/${userId}/${year}/${month}/${uniquePrefix}_${cleanName}`;
 }
 
 /**
