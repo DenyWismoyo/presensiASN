@@ -6,6 +6,7 @@ import { useRiwayatPresensi } from "@/hooks/usePresensi";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import MobilePageHeader from "@/components/dashboard/MobilePageHeader";
 import {
   Calendar as CalendarIcon,
   ChevronLeft,
@@ -136,8 +137,14 @@ export default function KalenderPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header Halaman */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      {/* Contextual Mobile Back Header */}
+      <MobilePageHeader
+        title="Kalender Kerja & Hari Libur"
+        subtitle="Jadwal dinas, presensi bulanan, dan evaluasi disiplin"
+      />
+
+      {/* Header Halaman (Desktop) */}
+      <div className="hidden md:flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
             <CalendarIcon className="w-6 h-6 text-emerald-600" />

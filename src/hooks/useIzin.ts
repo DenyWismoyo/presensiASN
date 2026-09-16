@@ -1,7 +1,8 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getIzinList, submitIzin, PengajuanIzinItem } from "@/actions/izin";
+import { getIzinList, submitIzin } from "@/actions/izin";
+import { PengajuanIzinItem } from "@/types";
 
 export function useIzinList(userId?: string) {
   return useQuery({

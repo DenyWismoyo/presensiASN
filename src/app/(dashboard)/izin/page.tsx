@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { playSuccessChime } from "@/lib/sound";
+import MobilePageHeader from "@/components/dashboard/MobilePageHeader";
 import {
   FileText,
   Calendar,
@@ -54,7 +56,7 @@ export default function IzinPage() {
     setIsSubmitting(true);
     setSuccessMessage(null);
 
-    let dokumenUrl = "#";
+    let dokumenUrl: string | undefined = undefined;
     let dokumenNama = "";
 
     try {
@@ -91,7 +93,7 @@ export default function IzinPage() {
         jumlahHari,
         alasan,
         dokumenNama: dokumenNama || undefined,
-        dokumenUrl: dokumenUrl !== "#" ? dokumenUrl : undefined,
+        dokumenUrl,
       });
 
       setSuccessMessage(
@@ -99,6 +101,7 @@ export default function IzinPage() {
       );
       setAlasan("");
       setFileToUpload(null);
+      playSuccessChime();
     } finally {
       setIsSubmitting(false);
     }
@@ -106,8 +109,14 @@ export default function IzinPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header Halaman */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      {/* Contextual Mobile Back Header */}
+      <MobilePageHeader
+        title="Pengajuan Izin & Cuti ASN"
+        subtitle="Permohonan cuti, sakit, dan surat tugas luar kantor"
+      />
+
+      {/* Header Halaman (Desktop) */}
+      <div className="hidden md:flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
             <FileText className="w-6 h-6 text-teal-600" />

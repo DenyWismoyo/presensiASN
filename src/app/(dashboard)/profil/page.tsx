@@ -2,7 +2,7 @@
 
 import React from "react";
 import { useRouter } from "next/navigation";
-import { useAuth, DEMO_USERS } from "@/lib/auth-context";
+import { useAuth } from "@/lib/auth-context";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -24,7 +24,7 @@ import {
 
 export default function ProfilPage() {
   const router = useRouter();
-  const { user, logout, switchRole } = useAuth();
+  const { user, logout } = useAuth();
 
   const handleLogout = () => {
     logout();
@@ -136,39 +136,6 @@ export default function ProfilPage() {
               <span className="font-semibold text-slate-800 font-mono">
                 {user?.nomorHp || "081234567890"}
               </span>
-            </div>
-          </div>
-
-          {/* Role Switcher Demo for Evaluator */}
-          <div className="pt-3 border-t border-slate-200 space-y-2">
-            <span className="text-[11px] font-semibold text-slate-600 block">
-              Ganti Peran Uji Coba:
-            </span>
-            <div className="grid grid-cols-3 gap-2">
-              <Button
-                variant={user?.role === "pegawai" ? "default" : "outline"}
-                size="sm"
-                onClick={() => switchRole("pegawai")}
-                className="text-xs h-9"
-              >
-                Pegawai
-              </Button>
-              <Button
-                variant={user?.role === "atasan" ? "default" : "outline"}
-                size="sm"
-                onClick={() => switchRole("atasan")}
-                className="text-xs h-9"
-              >
-                Atasan
-              </Button>
-              <Button
-                variant={user?.role === "admin" ? "default" : "outline"}
-                size="sm"
-                onClick={() => switchRole("admin")}
-                className="text-xs h-9"
-              >
-                Admin
-              </Button>
             </div>
           </div>
 

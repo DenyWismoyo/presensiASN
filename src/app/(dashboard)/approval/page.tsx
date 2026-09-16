@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { usePendingLKHList, useApproveLKHMutation, useRejectLKHMutation } from "@/hooks/useLKH";
 import { LKHRecord } from "@/types";
@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import MobilePageHeader from "@/components/dashboard/MobilePageHeader";
 import {
   ShieldAlert,
   CheckCircle2,
@@ -50,6 +51,46 @@ export default function ApprovalPage() {
       item.tanggal.includes(q)
     );
   });
+
+  const [isBatchApproving, setIsBatchApproving] = useState(false);
+
+  // Filter berkas yang telah mencapai target minimal 300 poin
+  const validForBatchApprove = useMemo(() => {
+    return pendingList.filter(
+      (item) => (item.totalPoinHarian || 0) >= 300 || item.isTargetTercapai
+    );
+  }, [pendingList]);
+
+  const handleBatchApprove = async () => {
+    if (!user || validForBatchApprove.length === 0) return;
+    const confirmed = window.confirm(
+      `Setujui ${validForBatchApprove.length} berkas LKH yang telah memenuhi target minimal 300 poin secara sekaligus?`
+    );
+    if (!confirmed) return;
+
+    setIsBatchApproving(true);
+    try {
+      for (const record of validForBatchApprove) {
+        await approveMutation.mutateAsync({
+          lkhId: record.id,
+          atasanId: user.id,
+          atasanNama: user.nama,
+          catatanAtasan: "Disetujui serentak. Capaian kegiatan memenuhi target minimal kinerja ASN.",
+        });
+      }
+      if (typeof window !== "undefined" && "vibrate" in navigator) {
+        try {
+          navigator.vibrate([40, 60, 40]);
+        } catch {}
+      }
+      alert(`Berhasil menyetujui ${validForBatchApprove.length} berkas LKH pegawai!`);
+    } catch (err) {
+      console.error("Gagal batch approve:", err);
+      alert("Terjadi kendala saat memproses sebagian berkas.");
+    } finally {
+      setIsBatchApproving(false);
+    }
+  };
 
   const handleApprove = async (record: LKHRecord) => {
     if (!user) return;
@@ -94,8 +135,14 @@ export default function ApprovalPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header Halaman */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      {/* Contextual Mobile Back Header */}
+      <MobilePageHeader
+        title="Persetujuan Kinerja Tim"
+        subtitle="Verifikasi akuntabilitas harian dan pengesahan SKP bawahan"
+      />
+
+      {/* Header Halaman (Desktop) */}
+      <div className="hidden md:flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
             <FileCheck2 className="w-6 h-6 text-emerald-600" />
@@ -106,10 +153,25 @@ export default function ApprovalPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <Badge variant="default" className="bg-emerald-600 hover:bg-emerald-700 text-xs px-3 py-1">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <Badge variant="default" className="bg-slate-800 text-white text-xs px-3 py-1.5">
             {pendingList.length} Berkas Menunggu Review
           </Badge>
+
+          {validForBatchApprove.length > 0 && (
+            <Button
+              onClick={handleBatchApprove}
+              disabled={isBatchApproving || approveMutation.isPending}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs h-8.5 px-3.5 font-semibold shadow-xs flex items-center gap-1.5 transition-all active:scale-95"
+            >
+              {isBatchApproving ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <CheckCircle2 className="w-3.5 h-3.5" />
+              )}
+              <span>Setujui Semua Lolos Syarat ({validForBatchApprove.length})</span>
+            </Button>
+          )}
         </div>
       </div>
 

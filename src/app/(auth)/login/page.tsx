@@ -2,13 +2,15 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth, DEMO_USERS } from "@/lib/auth-context";
-import { UserRole } from "@/types";
+import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+
+const IS_DEV = process.env.NODE_ENV === "development";
+
 import {
   ShieldCheck,
   UserCheck,
@@ -23,10 +25,9 @@ import {
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login, loginWithCredentials, isLoading } = useAuth();
+  const { loginWithCredentials, isLoading } = useAuth();
   const [nipOrEmail, setNipOrEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [selectedRole, setSelectedRole] = useState<UserRole>("pegawai");
   const [errorMsg, setErrorMsg] = useState("");
 
   const handleManualLogin = async (e: React.FormEvent) => {
@@ -42,17 +43,35 @@ export default function LoginPage() {
     }
 
     try {
-      await loginWithCredentials(nipOrEmail, password, selectedRole);
+      await loginWithCredentials(nipOrEmail, password);
       router.push("/");
-    } catch {
-      setErrorMsg("Gagal melakukan autentikasi. Silakan periksa data Anda.");
+    } catch (err: unknown) {
+      const msg = (err as Error)?.message || "";
+      if (msg.includes("UNAUTHORIZED") || msg.includes("belum terdaftar")) {
+        setErrorMsg(msg);
+      } else if (msg.includes("wrong-password") || msg.includes("invalid-credential")) {
+        setErrorMsg("Kata sandi salah. Silakan coba lagi.");
+      } else if (msg.includes("user-not-found") || msg.includes("invalid-email")) {
+        setErrorMsg("NIP atau Email tidak ditemukan dalam sistem.");
+      } else if (msg.includes("too-many-requests")) {
+        setErrorMsg("Terlalu banyak percobaan login. Coba lagi dalam beberapa menit.");
+      } else {
+        setErrorMsg("Gagal melakukan autentikasi. Periksa NIP/email dan kata sandi Anda.");
+      }
     }
   };
 
-  const handleQuickLogin = async (role: UserRole) => {
-    setSelectedRole(role);
-    await login(role);
-    router.push("/");
+  // DEV-ONLY: Login cepat untuk pengujian (tidak tersedia di production)
+  const handleDevQuickLogin = async (email: string, password: string) => {
+    if (!IS_DEV) return;
+    setNipOrEmail(email);
+    setPassword(password);
+    try {
+      await loginWithCredentials(email, password);
+      router.push("/");
+    } catch (err) {
+      setErrorMsg(`[DEV] Login gagal: ${(err as Error).message}`);
+    }
   };
 
   return (
@@ -213,58 +232,60 @@ export default function LoginPage() {
                 </Button>
               </form>
 
-              {/* Quick Demo Access Switcher */}
-              <div className="pt-3 border-t border-slate-800 space-y-2.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-medium text-slate-400">
-                    Akses Instan Demo (Mode Uji Coba):
-                  </span>
-                  <Badge variant="outline" className="text-[10px] border-slate-700 text-slate-400 py-0">
-                    Pilih Peran
-                  </Badge>
+              {/* Quick Login — Hanya tampil di mode development */}
+              {IS_DEV && (
+                <div className="pt-3 border-t border-slate-800 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-medium text-amber-400">
+                      ⚠️ Mode Development — Akun Test:
+                    </span>
+                    <Badge variant="outline" className="text-[10px] border-amber-700 text-amber-400 py-0">
+                      Dev Only
+                    </Badge>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleDevQuickLogin("budi.santoso@surakarta.go.id", "asn123456")}
+                      className="p-2 rounded-lg bg-slate-800 hover:bg-emerald-950/60 border border-amber-700/40 hover:border-emerald-500/60 text-left transition-all group"
+                    >
+                      <div className="text-[11px] font-semibold text-slate-200 group-hover:text-emerald-300">
+                        Pegawai
+                      </div>
+                      <div className="text-[9px] text-slate-400 truncate">
+                        Budi Santoso
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleDevQuickLogin("siti.rahmawati@surakarta.go.id", "asn123456")}
+                      className="p-2 rounded-lg bg-slate-800 hover:bg-teal-950/60 border border-amber-700/40 hover:border-teal-500/60 text-left transition-all group"
+                    >
+                      <div className="text-[11px] font-semibold text-slate-200 group-hover:text-teal-300">
+                        Atasan
+                      </div>
+                      <div className="text-[9px] text-slate-400 truncate">
+                        Siti Rahmawati
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleDevQuickLogin("admin.stp@surakarta.go.id", "asn123456")}
+                      className="p-2 rounded-lg bg-slate-800 hover:bg-blue-950/60 border border-amber-700/40 hover:border-blue-500/60 text-left transition-all group"
+                    >
+                      <div className="text-[11px] font-semibold text-slate-200 group-hover:text-blue-300">
+                        Admin
+                      </div>
+                      <div className="text-[9px] text-slate-400 truncate">
+                        BKPSDM
+                      </div>
+                    </button>
+                  </div>
                 </div>
-
-                <div className="grid grid-cols-3 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => handleQuickLogin("pegawai")}
-                    className="p-2 rounded-lg bg-slate-800 hover:bg-emerald-950/60 border border-slate-700 hover:border-emerald-500/60 text-left transition-all group"
-                  >
-                    <div className="text-[11px] font-semibold text-slate-200 group-hover:text-emerald-300">
-                      Pegawai
-                    </div>
-                    <div className="text-[9px] text-slate-400 truncate">
-                      {DEMO_USERS.pegawai.nama.split(",")[0]}
-                    </div>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => handleQuickLogin("atasan")}
-                    className="p-2 rounded-lg bg-slate-800 hover:bg-teal-950/60 border border-slate-700 hover:border-teal-500/60 text-left transition-all group"
-                  >
-                    <div className="text-[11px] font-semibold text-slate-200 group-hover:text-teal-300">
-                      Atasan
-                    </div>
-                    <div className="text-[9px] text-slate-400 truncate">
-                      {DEMO_USERS.atasan.nama.split(",")[0]}
-                    </div>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => handleQuickLogin("admin")}
-                    className="p-2 rounded-lg bg-slate-800 hover:bg-blue-950/60 border border-slate-700 hover:border-blue-500/60 text-left transition-all group"
-                  >
-                    <div className="text-[11px] font-semibold text-slate-200 group-hover:text-blue-300">
-                      Admin
-                    </div>
-                    <div className="text-[9px] text-slate-400 truncate">
-                      BKPSDM
-                    </div>
-                  </button>
-                </div>
-              </div>
+              )}
             </CardContent>
 
             <CardFooter className="pt-0 text-center justify-center">

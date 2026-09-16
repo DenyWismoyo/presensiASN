@@ -10,14 +10,7 @@ import {
   serverTimestamp,
 } from "firebase/firestore";
 import { auth, db } from "./config";
-import { UserProfile, UserRole } from "@/types";
-import { DEFAULT_STORAGE_LIMIT_BYTES } from "../utils";
-
-import { SEED_USERS } from "@/data/seedData";
-
-// Data Master Akun Demo ASN Terpadu (Solo Teknopark)
-export const DEMO_USERS: Record<UserRole, UserProfile> = SEED_USERS;
-
+import { UserProfile } from "@/types";
 
 /**
  * Normalisasi format NIP atau Email kedinasan menjadi format email standar Firebase Auth.
@@ -33,6 +26,8 @@ export function normalizeNipToEmail(input: string): string {
   return `${cleanDigits}@asn.go.id`;
 }
 
+import { getDevUserProfile } from "@/data/seedData";
+
 /**
  * Mengambil profil ASN dari koleksi Firestore `users/{uid}`
  */
@@ -45,11 +40,19 @@ export async function getUserProfileFromFirestore(
     if (snap.exists()) {
       return snap.data() as UserProfile;
     }
-    return null;
   } catch (error) {
     console.warn("[Firebase] Gagal mengambil profil dari Firestore:", error);
-    return null;
   }
+
+  // Mode Development: gunakan profil ASN Seed jika Firestore belum terisi atau terhalang security rules
+  if (process.env.NODE_ENV === "development") {
+    const devProfile = getDevUserProfile(uid);
+    if (devProfile) {
+      return devProfile;
+    }
+  }
+
+  return null;
 }
 
 /**
@@ -74,80 +77,44 @@ export async function upsertUserProfileToFirestore(
 }
 
 /**
- * Mencari profil default berdasarkan NIP atau Email
- */
-export function findDemoUserByNipOrEmail(
-  nipOrEmail: string
-): UserProfile | null {
-  const normalized = normalizeNipToEmail(nipOrEmail);
-  for (const role of Object.keys(DEMO_USERS) as UserRole[]) {
-    const u = DEMO_USERS[role];
-    if (
-      normalizeNipToEmail(u.nip) === normalized ||
-      u.email.toLowerCase() === nipOrEmail.trim().toLowerCase()
-    ) {
-      return u;
-    }
-  }
-  return null;
-}
-
-/**
- * Autentikasi ASN via Firebase Auth dengan graceful dev fallback
+ * Autentikasi ASN via Firebase Auth.
+ * Tidak ada fallback simulasi — jika gagal, error dilempar ke UI.
+ *
+ * @throws Error jika kredensial tidak valid atau Firebase tidak tersedia
  */
 export async function loginWithNipOrEmail(
   nipOrEmail: string,
   password: string,
-  preferredRole: UserRole = "pegawai"
-): Promise<UserProfile> {
+): Promise<{ user: FirebaseUser; profile: UserProfile }> {
   const email = normalizeNipToEmail(nipOrEmail);
 
-  // Coba login via Firebase Auth
-  try {
-    const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    const fbUser: FirebaseUser = userCredential.user;
+  // Login via Firebase Auth — jika gagal, throw error ke UI
+  const userCredential = await signInWithEmailAndPassword(auth, email, password);
+  const fbUser: FirebaseUser = userCredential.user;
 
-    // Ambil dokumen profil dari Firestore
-    const profile = await getUserProfileFromFirestore(fbUser.uid);
-    if (profile) {
-      return profile;
-    }
+  // Ambil dokumen profil dari Firestore
+  let profile = await getUserProfileFromFirestore(fbUser.uid);
 
-    // Jika belum ada di Firestore, buat profil baru berbasis data demo atau input
-    const demoMatch = findDemoUserByNipOrEmail(nipOrEmail) || DEMO_USERS[preferredRole];
-    const newProfile: UserProfile = {
-      ...demoMatch,
-      id: fbUser.uid,
-      email: fbUser.email || email,
-      nip: nipOrEmail.includes("@") ? demoMatch.nip : nipOrEmail,
-    };
-
-    await upsertUserProfileToFirestore(newProfile);
-    return newProfile;
-  } catch (firebaseError: unknown) {
-    // Graceful fallback jika menggunakan demo/mock API key atau belum ada koneksi live
-    console.info(
-      "[Auth ASN] Firebase Auth live tidak aktif atau kredensial mock, menggunakan mode lokal simulasi:",
-      (firebaseError as Error)?.message || firebaseError
-    );
-
-    // Cari kecocokan di demo user atau gunakan preferred role
-    const matched = findDemoUserByNipOrEmail(nipOrEmail);
-    if (matched) {
-      return matched;
-    }
-
-    // Jika tidak ditemukan tapi sandi valid (simulasi), buat profil pegawai dinamis
-    return {
-      ...DEMO_USERS[preferredRole],
-      nip: nipOrEmail,
-      email: email,
-    };
+  // Fallback dev mode jika akun Firebase Auth terdaftar tapi dokumen Firestore belum disinkronkan
+  if (!profile && process.env.NODE_ENV === "development") {
+    profile = getDevUserProfile(fbUser.email || email) || getDevUserProfile(fbUser.uid);
   }
+
+  if (!profile) {
+    // Profil belum ada di Firestore — ini tidak boleh terjadi di production.
+    // Admin harus membuat profil terlebih dahulu via seed atau manajemen user.
+    await signOut(auth);
+    throw new Error(
+      "Profil ASN Anda belum terdaftar di sistem. " +
+      "Hubungi Administrator untuk pendaftaran akun."
+    );
+  }
+
+  return { user: fbUser, profile };
 }
 
 /**
- * Sign out pengguna dari Firebase Auth dan hapus sesi
+ * Sign out pengguna dari Firebase Auth
  */
 export async function logoutUser(): Promise<void> {
   try {

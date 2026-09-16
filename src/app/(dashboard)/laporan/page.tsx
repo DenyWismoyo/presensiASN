@@ -14,6 +14,10 @@ import StorageMeter from "@/components/dashboard/StorageMeter";
 import KinerjaTrackerCard from "@/components/logbook/KinerjaTrackerCard";
 import AktivitasCombobox from "@/components/logbook/AktivitasCombobox";
 import LogbookDateStrip from "@/components/logbook/LogbookDateStrip";
+import FileUploadInput from "@/components/logbook/FileUploadInput";
+import { UploadedFileMetadata } from "@/types";
+import { playSuccessChime } from "@/lib/sound";
+import MobilePageHeader from "@/components/dashboard/MobilePageHeader";
 import {
   AktivitasASN,
   TARGET_POIN_HARIAN,
@@ -71,12 +75,11 @@ export default function LaporanPage() {
   // Sinkronisasi data Firestore jika record tanggal tersebut sudah tersimpan
   useEffect(() => {
     if (serverLKH) {
-      if (serverLKH.kegiatan) {
-        setKegiatanList(serverLKH.kegiatan);
-      }
-      if (serverLKH.status) {
-        setLkhStatus(serverLKH.status);
-      }
+      setKegiatanList(serverLKH.kegiatan || []);
+      setLkhStatus(serverLKH.status || "draft");
+    } else {
+      setKegiatanList([]);
+      setLkhStatus("draft");
     }
   }, [serverLKH]);
 
@@ -87,6 +90,11 @@ export default function LaporanPage() {
   const totalPoinHarian = useMemo(() => {
     return kegiatanList.reduce((acc, item) => acc + (item.totalPoin || 0), 0);
   }, [kegiatanList]);
+
+  const isApproved = lkhStatus === "approved";
+  const isSubmitted = lkhStatus === "submitted";
+  const isRejected = lkhStatus === "rejected";
+  const canEdit = lkhStatus === "draft" || isRejected;
 
   // Daftar berkas yang tersimpan di cloud storage 1 GB ASN
   const [savedFiles, setSavedFiles] = useState<SavedAttachment[]>([]);
@@ -103,6 +111,40 @@ export default function LaporanPage() {
   const [uploadedPhotos, setUploadedPhotos] = useState<string[]>([]);
   const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
 
+  // Handler untuk foto yang berhasil diupload ke Firebase Storage
+  const handleFotoUploaded = (metadata: UploadedFileMetadata) => {
+    setUploadedPhotos([...uploadedPhotos, metadata.url]);
+    // Catat penggunaan storage
+    consumeStorage(metadata.sizeBytes);
+    // Tambahkan ke daftar berkas tersimpan
+    const newSaved: SavedAttachment = {
+      id: metadata.id,
+      name: metadata.name,
+      sizeBytes: metadata.sizeBytes,
+      type: "foto",
+      url: metadata.url,
+      uploadedAt: "Baru saja",
+      kegiatanTitle: deskripsi || selectedAktivitas?.nama || "Draft Kegiatan",
+    };
+    setSavedFiles([newSaved, ...savedFiles]);
+  };
+
+  // Handler untuk dokumen yang berhasil diupload ke Firebase Storage
+  const handleDokumenUploaded = (metadata: UploadedFileMetadata) => {
+    setUploadedFiles([...uploadedFiles, metadata.name]);
+    consumeStorage(metadata.sizeBytes);
+    const newSaved: SavedAttachment = {
+      id: metadata.id,
+      name: metadata.name,
+      sizeBytes: metadata.sizeBytes,
+      type: "dokumen",
+      url: metadata.url,
+      uploadedAt: "Baru saja",
+      kegiatanTitle: deskripsi || selectedAktivitas?.nama || "Draft Kegiatan",
+    };
+    setSavedFiles([newSaved, ...savedFiles]);
+  };
+
   // Deteksi Cerdas Aktivitas dari Uraian Teks
   const detectedAktivitas = useMemo(() => {
     if (!deskripsi || deskripsi.length < 4) return null;
@@ -112,6 +154,78 @@ export default function LaporanPage() {
     }
     return null;
   }, [deskripsi, selectedAktivitas]);
+
+  // Template Cepat LKH (1-Click Fill) untuk Mempercepat Pengisian Pegawai
+  const QUICK_LKH_TEMPLATES = [
+    {
+      emoji: "👥",
+      label: "Rapat Koordinasi",
+      durasi: "120m",
+      aktivitasId: 4,
+      deskripsi: "Mengikuti rapat koordinasi internal pembahasan tindak lanjut program kerja dan arahan pimpinan.",
+      output: "Notula Rapat",
+      jamMulai: "09:00",
+      jamSelesai: "11:00",
+    },
+    {
+      emoji: "🏢",
+      label: "Pelayanan Publik",
+      durasi: "60m",
+      aktivitasId: 3,
+      deskripsi: "Memberikan pelayanan konsultasi dan pemrosesan permohonan administrasi kepada masyarakat.",
+      output: "Laporan Pelayanan",
+      jamMulai: "08:00",
+      jamSelesai: "09:00",
+    },
+    {
+      emoji: "📝",
+      label: "Penyusunan Laporan",
+      durasi: "60m",
+      aktivitasId: 41,
+      deskripsi: "Menyusun dan merumuskan laporan hasil kegiatan kedinasan beserta dokumentasi pendukung.",
+      output: "Dokumen Laporan",
+      jamMulai: "13:00",
+      jamSelesai: "14:00",
+    },
+    {
+      emoji: "💻",
+      label: "Input & Verifikasi Data",
+      durasi: "60m",
+      aktivitasId: 32,
+      deskripsi: "Melakukan verifikasi berkas administrasi dan penginputan data ke dalam sistem basis data instansi.",
+      output: "Data Terverifikasi",
+      jamMulai: "10:00",
+      jamSelesai: "11:00",
+    },
+    {
+      emoji: "🔍",
+      label: "Tugas Pengawasan",
+      durasi: "120m",
+      aktivitasId: 2,
+      deskripsi: "Melaksanakan tugas monitoring, pengawasan lapangan, dan kesiapsiagaan sarana prasarana dinas.",
+      output: "Laporan Pengawasan",
+      jamMulai: "14:00",
+      jamSelesai: "16:00",
+    },
+  ];
+
+  const handleApplyTemplate = (tmpl: typeof QUICK_LKH_TEMPLATES[number]) => {
+    if (typeof window !== "undefined" && "vibrate" in navigator) {
+      try {
+        navigator.vibrate(20);
+      } catch {}
+    }
+    const akt = getAktivitasSoloById(tmpl.aktivitasId);
+    if (akt) {
+      setSelectedAktivitas(akt);
+      setSatuanKegiatan(akt.satuan);
+    }
+    setDeskripsi(tmpl.deskripsi);
+    setOutputKegiatan(tmpl.output);
+    setJamMulai(tmpl.jamMulai);
+    setJamSelesai(tmpl.jamSelesai);
+    setVolumeKegiatan(1);
+  };
 
   const handleSelectAktivitas = (item: AktivitasASN) => {
     setSelectedAktivitas(item);
@@ -125,57 +239,6 @@ export default function LaporanPage() {
     handleSelectAktivitas(item);
   };
 
-  // Upload foto dengan konsumsi kuota 1 GB (~1.2 MB)
-  const handleSimulasiUploadFoto = () => {
-    setQuotaWarning(null);
-    const PHOTO_SIZE = 1258291; // ~1.2 MB
-    const success = consumeStorage(PHOTO_SIZE);
-
-    if (!success) {
-      setQuotaWarning("Kapasitas penyimpanan 1 GB Anda tidak mencukupi untuk mengunggah foto baru ini.");
-      return;
-    }
-
-    const mockUrl = "https://images.unsplash.com/photo-1497366216548-37526070297c?w=300&auto=format&fit=crop&q=80";
-    setUploadedPhotos([...uploadedPhotos, mockUrl]);
-
-    const newSaved: SavedAttachment = {
-      id: `file-${Date.now()}`,
-      name: `Foto_Kegiatan_${Date.now().toString().slice(-4)}.jpg`,
-      sizeBytes: PHOTO_SIZE,
-      type: "foto",
-      url: mockUrl,
-      uploadedAt: "Baru saja",
-      kegiatanTitle: deskripsi || selectedAktivitas?.nama || "Draft Kegiatan",
-    };
-    setSavedFiles([newSaved, ...savedFiles]);
-  };
-
-  // Upload dokumen dengan konsumsi kuota 1 GB (~2.4 MB)
-  const handleSimulasiUploadDoc = () => {
-    setQuotaWarning(null);
-    const DOC_SIZE = 2516582; // ~2.4 MB
-    const success = consumeStorage(DOC_SIZE);
-
-    if (!success) {
-      setQuotaWarning("Kapasitas penyimpanan 1 GB Anda tidak mencukupi untuk mengunggah berkas PDF baru ini.");
-      return;
-    }
-
-    const docName = `Laporan_Tugas_${Date.now().toString().slice(-4)}.pdf`;
-    setUploadedFiles([...uploadedFiles, docName]);
-
-    const newSaved: SavedAttachment = {
-      id: `file-${Date.now()}`,
-      name: docName,
-      sizeBytes: DOC_SIZE,
-      type: "dokumen",
-      url: "#",
-      uploadedAt: "Baru saja",
-      kegiatanTitle: deskripsi || selectedAktivitas?.nama || "Draft Kegiatan",
-    };
-    setSavedFiles([newSaved, ...savedFiles]);
-  };
 
   const handleHapusFileStorage = (fileId: string, sizeBytes: number) => {
     releaseStorage(sizeBytes);
@@ -215,6 +278,7 @@ export default function LaporanPage() {
     setUploadedPhotos([]);
     setUploadedFiles([]);
     setActiveTab("list");
+    playSuccessChime();
   };
 
   const handleHapusKegiatan = (id: string) => {
@@ -232,6 +296,7 @@ export default function LaporanPage() {
       kegiatan: kegiatanList,
       status: "draft",
     });
+    playSuccessChime();
   };
 
   const handleSubmitLKH = async () => {
@@ -252,12 +317,19 @@ export default function LaporanPage() {
       tanggal: selectedDateStr,
     });
     setLkhStatus("submitted");
+    playSuccessChime();
   };
 
   return (
     <div className="space-y-6">
-      {/* Header Halaman */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      {/* Contextual Mobile Back Header */}
+      <MobilePageHeader
+        title="Logbook Kinerja Harian"
+        subtitle="Pelaporan tugas dinas & pemenuhan 300 poin SKP"
+      />
+
+      {/* Header Halaman (Desktop) */}
+      <div className="hidden md:flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
             <FileSpreadsheet className="w-6 h-6 text-teal-600" />
@@ -271,33 +343,45 @@ export default function LaporanPage() {
         <div className="flex items-center gap-3">
           <Badge
             variant={
-              lkhStatus === "approved"
+              isApproved
                 ? "default"
-                : lkhStatus === "submitted"
+                : isSubmitted
                 ? "warning"
+                : isRejected
+                ? "destructive"
                 : "secondary"
             }
-            className="text-xs px-3 py-1 capitalize"
+            className="text-xs px-3 py-1"
           >
-            Status: {lkhStatus === "submitted" ? "Menunggu Persetujuan Atasan" : lkhStatus}
+            Status: {
+              isApproved
+                ? "Disetujui"
+                : isSubmitted
+                ? "Menunggu Persetujuan Atasan"
+                : isRejected
+                ? "Dikembalikan (Perbaikan)"
+                : "Draf"
+            }
           </Badge>
 
           {/* Tombol Simpan Draf ke Cloud */}
-          <Button
-            onClick={handleSaveDraft}
-            disabled={saveLKHMutation.isPending}
-            variant="outline"
-            className="border-slate-300 hover:bg-slate-100 text-slate-700 text-xs h-9 font-semibold"
-          >
-            {saveLKHMutation.isPending ? (
-              <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin text-teal-600" />
-            ) : (
-              <Save className="w-3.5 h-3.5 mr-1.5 text-teal-600" />
-            )}
-            Simpan Draf
-          </Button>
+          {canEdit && (
+            <Button
+              onClick={handleSaveDraft}
+              disabled={saveLKHMutation.isPending}
+              variant="outline"
+              className="border-slate-300 hover:bg-slate-100 text-slate-700 text-xs h-9 font-semibold"
+            >
+              {saveLKHMutation.isPending ? (
+                <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin text-teal-600" />
+              ) : (
+                <Save className="w-3.5 h-3.5 mr-1.5 text-teal-600" />
+              )}
+              Simpan Draf
+            </Button>
+          )}
 
-          {lkhStatus === "draft" && kegiatanList.length > 0 && (
+          {canEdit && kegiatanList.length > 0 && (
             <Button
               onClick={handleSubmitLKH}
               disabled={submitLKHMutation.isPending || saveLKHMutation.isPending}
@@ -308,11 +392,59 @@ export default function LaporanPage() {
               ) : (
                 <Send className="w-3.5 h-3.5 mr-1.5" />
               )}
-              Kirim ke Atasan
+              {isRejected ? "Kirim Ulang ke Atasan" : "Kirim ke Atasan"}
             </Button>
           )}
         </div>
       </div>
+
+      {/* Banner Feedback & Status Atasan Langsung */}
+      {isRejected && (
+        <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-900 text-xs flex items-start gap-3">
+          <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+          <div className="space-y-1">
+            <span className="font-bold text-sm text-red-800">LKH Dikembalikan untuk Perbaikan</span>
+            <p className="text-slate-700 font-medium">
+              Alasan: {serverLKH?.rejectedReason || serverLKH?.catatanAtasan || "Harap lengkapi bukti atau perbaiki uraian rincian kegiatan."}
+            </p>
+            {serverLKH?.approvedByName && (
+              <span className="text-[11px] text-slate-500 block">Pejabat Penilai: {serverLKH.approvedByName}</span>
+            )}
+            <p className="text-[11px] text-red-700 font-semibold mt-1">
+              Silakan sesuaikan kegiatan di bawah, lalu klik &quot;Kirim Ulang ke Atasan&quot;.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {isApproved && (
+        <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-950 text-xs flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <CheckCheck className="w-5 h-5 text-emerald-600 shrink-0" />
+            <div>
+              <span className="font-semibold">LKH Telah Disetujui</span>
+              {serverLKH?.approvedByName && (
+                <span className="text-slate-600 ml-1">oleh {serverLKH.approvedByName}</span>
+              )}
+              {serverLKH?.catatanAtasan && (
+                <p className="text-[11px] text-emerald-800 mt-0.5">&ldquo;{serverLKH.catatanAtasan}&rdquo;</p>
+              )}
+            </div>
+          </div>
+          <Badge variant="default" className="bg-emerald-600 text-white text-[11px]">
+            SKP Sah
+          </Badge>
+        </div>
+      )}
+
+      {isSubmitted && (
+        <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-center gap-2.5">
+          <Clock className="w-4 h-4 text-amber-600 shrink-0" />
+          <span>
+            LKH sedang menunggu peninjauan dan verifikasi dari Atasan Langsung. Anda tidak dapat mengubah kegiatan selama proses review berlangsung.
+          </span>
+        </div>
+      )}
 
       {/* Navigasi Tanggal Harian Logbook (Date Strip) */}
       <LogbookDateStrip
@@ -453,13 +585,54 @@ export default function LaporanPage() {
               </CardHeader>
 
               <CardContent>
-                <form onSubmit={handleTambahKegiatan} className="space-y-4">
+                {!canEdit ? (
+                  <div className="p-6 text-center space-y-3 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                    <CheckCheck className="w-8 h-8 text-emerald-600 mx-auto" />
+                    <p className="text-xs font-bold text-slate-800">
+                      {isApproved ? "LKH Telah Disetujui & Disahkan" : "LKH Sedang Dalam Proses Verifikasi"}
+                    </p>
+                    <p className="text-[11px] text-slate-500 leading-relaxed max-w-sm mx-auto">
+                      {isApproved
+                        ? "Laporan Kinerja Harian pada tanggal ini sudah diverifikasi dan disahkan oleh Atasan Langsung. Penambahan atau pengeditan kegiatan dikunci permanen."
+                        : "Laporan sudah dikirimkan ke Atasan Langsung. Formulir input dikunci sementara hingga ada keputusan verifikasi atau pengembalian perbaikan dari atasan."}
+                    </p>
+                  </div>
+                ) : (
+                  <form onSubmit={handleTambahKegiatan} className="space-y-4">
                   {quotaWarning && (
                     <div className="p-3 rounded-xl bg-red-50 border border-red-300 text-red-800 text-xs flex items-center gap-2">
                       <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
                       <span>{quotaWarning}</span>
                     </div>
                   )}
+
+                  {/* Template Cepat 1-Klik: Mobile-First Fast Fill */}
+                  <div className="space-y-1.5 p-3 rounded-xl bg-gradient-to-r from-emerald-50/70 to-teal-50/60 border border-emerald-200/80">
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="font-bold text-emerald-950 flex items-center gap-1.5">
+                        <Zap className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+                        Template Cepat 1-Klik ASN:
+                      </span>
+                      <span className="text-[10px] text-emerald-700 font-medium">Sentuh untuk isi cepat</span>
+                    </div>
+
+                    <div className="flex gap-1.5 overflow-x-auto pb-1 pt-0.5 scrollbar-none -mx-1 px-1">
+                      {QUICK_LKH_TEMPLATES.map((tmpl) => (
+                        <button
+                          key={tmpl.label}
+                          type="button"
+                          onClick={() => handleApplyTemplate(tmpl)}
+                          className="shrink-0 px-2.5 py-1.5 rounded-lg bg-white hover:bg-emerald-100/70 text-slate-800 hover:text-emerald-900 border border-emerald-200/90 text-[11px] font-medium transition-all active:scale-95 flex items-center gap-1.5 shadow-2xs group"
+                        >
+                          <span className="text-xs group-hover:scale-110 transition-transform">{tmpl.emoji}</span>
+                          <span className="font-semibold">{tmpl.label}</span>
+                          <span className="text-[9px] text-emerald-700 font-bold bg-emerald-100/80 px-1 py-0.2 rounded">
+                            {tmpl.durasi}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
 
                   {/* Selector Kamus 152 Master Aktivitas */}
                   <div className="space-y-1.5">
@@ -594,26 +767,40 @@ export default function LaporanPage() {
                     {/* Compact Storage Meter */}
                     <StorageMeter compact />
 
-                    <div className="grid grid-cols-2 gap-2 pt-1">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={handleSimulasiUploadFoto}
-                        className="text-xs h-9 flex items-center justify-center gap-1.5 border-dashed border-emerald-400 bg-emerald-50/50 hover:bg-emerald-50 text-emerald-800"
-                      >
-                        <ImageIcon className="w-4 h-4 text-emerald-600" />
-                        + Foto (~1.2MB) ({uploadedPhotos.length})
-                      </Button>
+                    {quotaWarning && (
+                      <div className="p-2.5 rounded-lg bg-amber-50 border border-amber-200 flex items-start gap-2">
+                        <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                        <p className="text-xs text-amber-800">{quotaWarning}</p>
+                      </div>
+                    )}
 
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={handleSimulasiUploadDoc}
-                        className="text-xs h-9 flex items-center justify-center gap-1.5 border-dashed border-teal-400 bg-teal-50/50 hover:bg-teal-50 text-teal-800"
-                      >
-                        <UploadCloud className="w-4 h-4 text-teal-600" />
-                        + PDF (~2.4MB) ({uploadedFiles.length})
-                      </Button>
+                    <div className="grid grid-cols-1 gap-2 pt-1">
+                      {user && (
+                        <FileUploadInput
+                          userId={user.id}
+                          orgId={user.orgId}
+                          type="foto"
+                          label="+ Upload Foto Kegiatan"
+                          maxSizeMB={10}
+                          kegiatanDeskripsi={deskripsi || selectedAktivitas?.nama}
+                          onUploaded={handleFotoUploaded}
+                          onError={(msg) => setQuotaWarning(msg)}
+                          onStorageCheck={(bytes) => consumeStorage(bytes)}
+                        />
+                      )}
+                      {user && (
+                        <FileUploadInput
+                          userId={user.id}
+                          orgId={user.orgId}
+                          type="dokumen"
+                          label="+ Upload PDF / Dokumen"
+                          maxSizeMB={20}
+                          kegiatanDeskripsi={deskripsi || selectedAktivitas?.nama}
+                          onUploaded={handleDokumenUploaded}
+                          onError={(msg) => setQuotaWarning(msg)}
+                          onStorageCheck={(bytes) => consumeStorage(bytes)}
+                        />
+                      )}
                     </div>
 
                     {uploadedPhotos.length > 0 && (
@@ -639,6 +826,7 @@ export default function LaporanPage() {
                     Simpan Kegiatan ke Logbook
                   </Button>
                 </form>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -715,7 +903,7 @@ export default function LaporanPage() {
                             <Clock className="w-3 h-3 mr-1" />
                             {item.jamMulai} - {item.jamSelesai}
                           </Badge>
-                          {lkhStatus === "draft" && (
+                          {canEdit && (
                             <button
                               onClick={() => handleHapusKegiatan(item.id)}
                               className="p-1 rounded text-slate-400 hover:text-red-600 hover:bg-red-50"

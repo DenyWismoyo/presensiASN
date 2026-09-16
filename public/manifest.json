@@ -1,0 +1,19 @@
+{
+  "name": "Presensi & Kinerja ASN Surakarta",
+  "short_name": "Presensi ASN",
+  "description": "Sistem Presensi Digital Berbasis Lokasi GPS, Swafoto Watermark, dan Laporan Kinerja Harian ASN Pemerintah Kota Surakarta",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#059669",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/globe.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["productivity", "government", "utilities"]
+}

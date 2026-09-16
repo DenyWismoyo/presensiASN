@@ -3,7 +3,7 @@
 import React, { useMemo } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
-import { usePresensiHarian, useRiwayatPresensi } from "@/hooks/usePresensi";
+import { useRiwayatPresensi } from "@/hooks/usePresensi";
 import { useLKHHarian } from "@/hooks/useLKH";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -24,29 +24,15 @@ import {
   Clock,
 } from "lucide-react";
 
+import QuickPresensiWidget from "@/components/dashboard/QuickPresensiWidget";
+
 export default function DashboardPage() {
   const { user } = useAuth();
   const todayDateStr = useMemo(() => new Date().toISOString().split("T")[0], []);
 
   // Ambil data presensi hari ini
-  const { data: presensiToday } = usePresensiHarian(user?.id, todayDateStr);
   const { data: riwayatPresensi = [] } = useRiwayatPresensi(user?.id, 30);
   const { data: lkhToday } = useLKHHarian(user?.id, todayDateStr);
-
-  const isCheckedIn = Boolean(presensiToday?.checkIn?.waktu);
-  const checkInTimeStr = presensiToday?.checkIn?.waktu
-    ? new Date(presensiToday.checkIn.waktu).toLocaleTimeString("id-ID", {
-        hour: "2-digit",
-        minute: "2-digit",
-      }) + " WIB"
-    : null;
-
-  const checkOutTimeStr = presensiToday?.checkOut?.waktu
-    ? new Date(presensiToday.checkOut.waktu).toLocaleTimeString("id-ID", {
-        hour: "2-digit",
-        minute: "2-digit",
-      }) + " WIB"
-    : null;
 
   // Hitung statistik presensi dari riwayat nyata
   const stats = useMemo(() => {
@@ -112,62 +98,10 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Grid: Status Hari Ini (Presensi & LKH) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Card Status Presensi Hari Ini */}
-        <Card className="border-slate-200/80 shadow-xs hover:shadow-md transition-shadow">
-          <CardHeader className="pb-3 flex flex-row items-center justify-between">
-            <div>
-              <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <ClockCheck className="w-5 h-5 text-emerald-600" />
-                Presensi Hari Ini
-              </CardTitle>
-              <CardDescription className="text-xs">
-                Verifikasi lokasi GPS satelit & swafoto dinas
-              </CardDescription>
-            </div>
-            <Badge
-              variant={isCheckedIn ? "default" : "warning"}
-              className="text-xs px-2.5 py-0.5"
-            >
-              {isCheckedIn ? "Sudah Check-In ✅" : "Belum Presensi Masuk"}
-            </Badge>
-          </CardHeader>
-          <CardContent className="space-y-4 pt-1">
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/70 space-y-2 text-xs">
-              <div className="flex items-center justify-between">
-                <span className="text-slate-500">Waktu Masuk:</span>
-                <span className="font-semibold text-slate-800">
-                  {checkInTimeStr || "Belum terekam (Batas 07:30 WIB)"}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-slate-500">Waktu Pulang:</span>
-                <span className="font-semibold text-slate-800">
-                  {checkOutTimeStr || "Belum terekam (Minimal 16:00 WIB)"}
-                </span>
-              </div>
-              <div className="flex items-center justify-between pt-1 border-t border-slate-200">
-                <span className="text-slate-500 flex items-center gap-1">
-                  <MapPin className="w-3.5 h-3.5 text-emerald-600" />
-                  Lokasi Kantor:
-                </span>
-                <span className="font-semibold text-emerald-700 flex items-center gap-1">
-                  {presensiToday?.namaKantor || user?.namaKantor || "Solo Teknopark"}
-                </span>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between gap-3">
-              <Link href="/presensi" className="w-full">
-                <Button className="w-full text-xs h-9 font-medium bg-emerald-600 hover:bg-emerald-700 text-white">
-                  <Clock className="w-4 h-4 mr-1.5" />
-                  {isCheckedIn ? "Lihat Status / Check-Out Pulang" : "Lakukan Presensi Masuk Sekarang"}
-                </Button>
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
+      {/* Grid: Status Hari Ini (Live Radar Presensi & LKH) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+        {/* Radar Presensi Real-Time & 1-Tap Action */}
+        <QuickPresensiWidget />
 
         {/* Card Laporan Kegiatan Harian (LKH) Hari Ini */}
         <Card className="border-slate-200/80 shadow-xs hover:shadow-md transition-shadow">

@@ -86,8 +86,14 @@ export interface PresensiCheckPoint {
   kantorId?: string;
   namaKantor?: string;
   jarakMeter?: number;
+  serverVerifiedDistanceMeter?: number;
   alamat?: string;
   catatan?: string;
+  ipAddress?: string;
+  userAgent?: string;
+  gpsAccuracyMeter?: number;
+  isMockDetected?: boolean;
+  isSuspiciousTravel?: boolean;
 }
 
 export interface PresensiRecord {
@@ -153,4 +159,53 @@ export interface OfficeLocationConfig {
   radiusMeter: number;
   jamMasukMaksimal: string; // '07:30'
   jamPulangMinimal: string; // '16:00'
+}
+
+export interface PengajuanIzinItem {
+  id: string;
+  userId: string;
+  nama: string;
+  nip: string;
+  jenis: "Cuti Tahunan" | "Izin Alasan Penting" | "Sakit" | "Dinas Luar";
+  tanggalMulai: string;
+  tanggalSelesai: string;
+  jumlahHari: number;
+  alasan: string;
+  dokumenUrl?: string;
+  dokumenNama?: string;
+  status: "menunggu" | "disetujui" | "ditolak";
+  createdAt: string;
+}
+
+export interface CheckInPayload {
+  userId: string;
+  nip: string;
+  nama: string;
+  orgId: string;
+  tanggal: string; // YYYY-MM-DD
+  kantorId?: string;
+  namaKantor?: string;
+  jarakMeter?: number;
+  koordinat: GeolocationPoint;
+  fotoUrl: string;
+  isValidLocation: boolean;
+  alamat?: string;
+  catatan?: string;
+  gpsAccuracyMeter?: number;
+  isMockDetected?: boolean;
+}
+
+export interface CheckOutPayload {
+  userId: string;
+  tanggal: string; // YYYY-MM-DD
+  kantorId?: string;
+  namaKantor?: string;
+  jarakMeter?: number;
+  koordinat: GeolocationPoint;
+  fotoUrl: string;
+  isValidLocation: boolean;
+  alamat?: string;
+  catatan?: string;
+  gpsAccuracyMeter?: number;
+  isMockDetected?: boolean;
 }

@@ -6,6 +6,10 @@ import { usePresensiHarian, useCheckInMutation, useCheckOutMutation } from "@/ho
 import { useKantorList } from "@/hooks/useKantor";
 import { DEFAULT_KANTOR_LIST, calculateHaversineDistance, detectNearestOffice } from "@/data/masterKantor";
 import { KantorUnit } from "@/types";
+import CameraCapture from "@/components/presensi/CameraCapture";
+import { checkGpsIntegrity } from "@/lib/anti-fraud/client";
+import { playSuccessChime, playWarningBeep } from "@/lib/sound";
+import MobilePageHeader from "@/components/dashboard/MobilePageHeader";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -19,9 +23,9 @@ import {
   ShieldCheck,
   Building,
   Building2,
-  ChevronDown,
   Compass,
   Check,
+  AlertCircle,
 } from "lucide-react";
 
 export default function PresensiPage() {
@@ -41,61 +45,87 @@ export default function PresensiPage() {
   const checkInMutation = useCheckInMutation();
   const checkOutMutation = useCheckOutMutation();
 
-  // Mode deteksi kantor: "auto" atau id kantor tertentu
-  const [selectedKantorMode, setSelectedKantorMode] = useState<string>("auto");
+  // Koordinat user dari GPS (null sampai GPS berhasil)
+  const [gpsStatus, setGpsStatus] = useState<"locating" | "success" | "denied">("locating");
+  const [gpsError, setGpsError] = useState<string | null>(null);
+  const [gpsWarning, setGpsWarning] = useState<string | null>(null);
+  const [gpsAccuracy, setGpsAccuracy] = useState<number | undefined>(undefined);
+  const [isMockDetected, setIsMockDetected] = useState<boolean>(false);
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
 
-  // Koordinat default awal (Solo Teknopark)
-  const defaultCoords = DEFAULT_KANTOR_LIST[0].koordinat;
-  const [gpsStatus, setGpsStatus] = useState<"locating" | "success" | "simulated">("locating");
-  const [coords, setCoords] = useState<{ lat: number; lng: number }>({
-    lat: defaultCoords.lat,
-    lng: defaultCoords.lng,
-  });
+  // State foto dari kamera nyata
+  const [capturedFotoUrl, setCapturedFotoUrl] = useState<string | null>(
+    presensiData?.checkIn?.fotoUrl || null
+  );
+  const [checkInError, setCheckInError] = useState<string | null>(null);
+  const [checkOutError, setCheckOutError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Ambil GPS aktual pengguna jika diizinkan browser
-    if (typeof window !== "undefined" && navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setCoords({
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-          });
-          setGpsStatus("success");
-        },
-        () => {
-          // Fallback demo: koordinat default Solo Teknopark
-          setCoords({
-            lat: defaultCoords.lat + 0.0001,
-            lng: defaultCoords.lng + 0.0001,
-          });
-          setGpsStatus("simulated");
-        },
-        { enableHighAccuracy: true, timeout: 5000 }
-      );
+    if (typeof window === "undefined" || !navigator.geolocation) {
+      setGpsError("Browser tidak mendukung GPS. Presensi tidak dapat dilakukan.");
+      setGpsStatus("denied");
+      return;
     }
-  }, [defaultCoords.lat, defaultCoords.lng]);
 
-  // Perhitungan jarak untuk semua kantor
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const integrity = checkGpsIntegrity(position);
+        setGpsAccuracy(integrity.accuracy);
+
+        if (integrity.isMock) {
+          setIsMockDetected(true);
+          setGpsStatus("denied");
+          setGpsError(integrity.warning || "Terdeteksi aplikasi Mock Location (Fake GPS).");
+          return;
+        }
+
+        if (integrity.warning) {
+          setGpsWarning(integrity.warning);
+        } else {
+          setGpsWarning(null);
+        }
+
+        setCoords({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        });
+        setGpsStatus("success");
+        setGpsError(null);
+      },
+      (err) => {
+        let msg = "GPS tidak tersedia.";
+        if (err.code === GeolocationPositionError.PERMISSION_DENIED) {
+          msg = "Izin lokasi GPS ditolak. Aktifkan izin lokasi di browser lalu muat ulang halaman.";
+        } else if (err.code === GeolocationPositionError.POSITION_UNAVAILABLE) {
+          msg = "Sinyal GPS tidak tersedia di lokasi Anda saat ini.";
+        } else if (err.code === GeolocationPositionError.TIMEOUT) {
+          msg = "GPS timeout. Pastikan Anda berada di tempat dengan sinyal GPS yang baik.";
+        }
+        setGpsError(msg);
+        setGpsStatus("denied");
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  }, []);
+
+  // Perhitungan jarak untuk semua kantor (hanya jika GPS tersedia)
   const nearestResult = useMemo(() => {
+    if (!coords) return null;
     return detectNearestOffice(coords, kantorList);
   }, [coords, kantorList]);
 
-  // Tentukan kantor aktif berdasarkan mode pemilihan
+  // Tentukan kantor aktif (auto = terdekat)
   const activeOffice: KantorUnit = useMemo(() => {
-    if (selectedKantorMode === "auto") {
-      return nearestResult.nearestOffice;
-    }
-    const found = kantorList.find((k) => k.id === selectedKantorMode);
-    return found || nearestResult.nearestOffice;
-  }, [selectedKantorMode, kantorList, nearestResult.nearestOffice]);
+    return nearestResult?.nearestOffice || kantorList[0] || DEFAULT_KANTOR_LIST[0];
+  }, [nearestResult, kantorList]);
 
-  // Hitung jarak ke kantor aktif
+  // Hitung jarak ke kantor aktif (null jika GPS tidak tersedia)
   const currentDistance = useMemo(() => {
+    if (!coords) return null;
     return calculateHaversineDistance(coords, activeOffice.koordinat);
   }, [coords, activeOffice]);
 
-  const isWithinRadius = currentDistance <= activeOffice.radiusMeter;
+  const isWithinRadius = currentDistance !== null && currentDistance <= activeOffice.radiusMeter;
 
   const formatTimeString = (isoString?: string) => {
     if (!isoString) return null;
@@ -110,63 +140,102 @@ export default function PresensiPage() {
 
   const checkInTime = formatTimeString(presensiData?.checkIn?.waktu);
   const checkOutTime = formatTimeString(presensiData?.checkOut?.waktu);
-  const capturedPhoto = presensiData?.checkIn?.fotoUrl || null;
+  // Foto yang sudah tersimpan dari presensi sebelumnya (Firebase URL)
+  const existingFotoUrl = presensiData?.checkIn?.fotoUrl || null;
   const isProcessing = checkInMutation.isPending || checkOutMutation.isPending;
 
-  const handleCaptureAndCheckIn = async () => {
-    if (!user) return;
-    const fotoUrl =
-      "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80";
+  // Dipanggil oleh CameraCapture setelah foto berhasil diupload ke Firebase Storage
+  const handleFotoCaptured = (fotoUrl: string, sizeBytes: number) => {
+    setCapturedFotoUrl(fotoUrl);
+    // Catat penggunaan storage dari foto presensi
+    // (storage tracking opsional, tidak memblokir check-in)
+    console.info(`[Presensi] Foto diupload: ${fotoUrl}, ukuran: ${sizeBytes} bytes`);
+  };
 
-    await checkInMutation.mutateAsync({
-      userId: user.id,
-      nip: user.nip,
-      nama: user.nama,
-      orgId: user.orgId,
-      tanggal: todayDateStr,
-      kantorId: activeOffice.id,
-      namaKantor: activeOffice.namaKantor,
-      jarakMeter: currentDistance,
-      koordinat: coords,
-      fotoUrl,
-      isValidLocation: isWithinRadius,
-      alamat: activeOffice.alamat,
-      catatan: `Presensi Swafoto ASN di ${activeOffice.namaKantor}`,
-    });
+  const handleCheckIn = async () => {
+    if (!user || !coords) return;
+    if (!capturedFotoUrl) {
+      playWarningBeep();
+      setCheckInError("Harap ambil swafoto terlebih dahulu sebelum check-in.");
+      return;
+    }
+    if (!isWithinRadius) {
+      playWarningBeep();
+      setCheckInError(`Anda berada di luar radius kantor (${currentDistance}m dari ${activeOffice.namaKantor}). Check-in tidak diizinkan.`);
+      return;
+    }
+
+    setCheckInError(null);
+    try {
+      const result = await checkInMutation.mutateAsync({
+        userId: user.id,
+        nip: user.nip,
+        nama: user.nama,
+        orgId: user.orgId,
+        tanggal: todayDateStr,
+        kantorId: activeOffice.id,
+        namaKantor: activeOffice.namaKantor,
+        jarakMeter: currentDistance ?? undefined,
+        koordinat: coords,
+        fotoUrl: capturedFotoUrl,
+        isValidLocation: isWithinRadius,
+        alamat: activeOffice.alamat,
+        catatan: `Presensi Masuk ASN di ${activeOffice.namaKantor}`,
+        gpsAccuracyMeter: gpsAccuracy,
+        isMockDetected,
+      });
+      if (!result.success) {
+        playWarningBeep();
+        setCheckInError(result.message || "Check-in gagal. Coba lagi.");
+      } else {
+        playSuccessChime();
+      }
+    } catch (err) {
+      playWarningBeep();
+      setCheckInError((err as Error).message || "Check-in gagal. Hubungi administrator.");
+    }
   };
 
   const handleCheckOut = async () => {
-    if (!user) return;
-    await checkOutMutation.mutateAsync({
-      userId: user.id,
-      tanggal: todayDateStr,
-      kantorId: activeOffice.id,
-      namaKantor: activeOffice.namaKantor,
-      jarakMeter: currentDistance,
-      koordinat: coords,
-      fotoUrl:
-        presensiData?.checkIn?.fotoUrl ||
-        "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80",
-      isValidLocation: isWithinRadius,
-      alamat: activeOffice.alamat,
-      catatan: `Presensi Pulang Kerja ASN di ${activeOffice.namaKantor}`,
-    });
-  };
-
-  const handleSimulasiLokasi = (kantor: KantorUnit) => {
-    // Beri offset sedikit (sekitar 15 meter di dalam radius)
-    setCoords({
-      lat: kantor.koordinat.lat + 0.00008,
-      lng: kantor.koordinat.lng + 0.00008,
-    });
-    setSelectedKantorMode(kantor.id);
-    setGpsStatus("simulated");
+    if (!user || !coords) return;
+    setCheckOutError(null);
+    try {
+      const result = await checkOutMutation.mutateAsync({
+        userId: user.id,
+        tanggal: todayDateStr,
+        kantorId: activeOffice.id,
+        namaKantor: activeOffice.namaKantor,
+        jarakMeter: currentDistance ?? undefined,
+        koordinat: coords,
+        fotoUrl: existingFotoUrl || capturedFotoUrl || "",
+        isValidLocation: isWithinRadius,
+        alamat: activeOffice.alamat,
+        catatan: `Presensi Pulang ASN di ${activeOffice.namaKantor}`,
+        gpsAccuracyMeter: gpsAccuracy,
+        isMockDetected,
+      });
+      if (!result.success) {
+        playWarningBeep();
+        setCheckOutError(result.message || "Check-out gagal. Coba lagi.");
+      } else {
+        playSuccessChime();
+      }
+    } catch (err) {
+      playWarningBeep();
+      setCheckOutError((err as Error).message || "Check-out gagal. Hubungi administrator.");
+    }
   };
 
   return (
     <div className="space-y-6">
-      {/* Header Halaman */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      {/* Contextual Mobile Back Header */}
+      <MobilePageHeader
+        title="Presensi Swafoto ASN"
+        subtitle="Verifikasi lokasi GPS satelit & swafoto dinas"
+      />
+
+      {/* Header Halaman (Desktop) */}
+      <div className="hidden md:flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
             <Clock className="w-6 h-6 text-emerald-600" />
@@ -178,31 +247,25 @@ export default function PresensiPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          {/* Selector Kantor Target */}
-          <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 shadow-sm text-xs">
-            <Building2 className="w-3.5 h-3.5 text-slate-500" />
-            <span className="text-slate-500 font-medium">Target Kantor:</span>
-            <select
-              value={selectedKantorMode}
-              onChange={(e) => setSelectedKantorMode(e.target.value)}
-              className="bg-transparent font-semibold text-slate-800 text-xs focus:outline-none cursor-pointer"
-            >
-              <option value="auto">📍 Auto Terdekat ({nearestResult.nearestOffice.kodeKantor})</option>
-              {kantorList.map((k) => (
-                <option key={k.id} value={k.id}>
-                  {k.namaKantor} ({k.kategori})
-                </option>
-              ))}
-            </select>
-          </div>
-
+          {/* Status GPS */}
           <Badge
-            variant={isWithinRadius ? "default" : "destructive"}
+            variant={gpsStatus === "success" ? "default" : gpsStatus === "denied" ? "destructive" : "secondary"}
             className="text-xs px-3 py-1 flex items-center gap-1.5"
           >
             <MapPin className="w-3.5 h-3.5" />
-            {isWithinRadius ? `Dalam Radius ${activeOffice.radiusMeter}m` : "Di Luar Radius Kantor"}
+            {gpsStatus === "locating" ? "Mendeteksi GPS..." :
+             gpsStatus === "denied" ? "GPS Tidak Tersedia" :
+             `GPS Aktif`}
           </Badge>
+
+          {gpsStatus === "success" && (
+            <Badge
+              variant={isWithinRadius ? "default" : "destructive"}
+              className="text-xs px-3 py-1 flex items-center gap-1.5"
+            >
+              {isWithinRadius ? `✓ Dalam Radius ${activeOffice.radiusMeter}m` : `✗ Di Luar Radius ${activeOffice.radiusMeter}m`}
+            </Badge>
+          )}
         </div>
       </div>
 
@@ -227,65 +290,77 @@ export default function PresensiPage() {
             </CardHeader>
 
             <CardContent className="p-6 space-y-6">
-              {/* Camera Frame Preview */}
-              <div className="relative aspect-[3/4] sm:aspect-video max-h-[420px] sm:max-h-80 w-full rounded-2xl bg-slate-950 border-2 border-dashed border-slate-700 flex flex-col items-center justify-center overflow-hidden shadow-inner mx-auto">
-                {capturedPhoto ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={capturedPhoto}
-                    alt="Swafoto Presensi"
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="text-center p-6 space-y-3">
-                    <div className="w-16 h-16 rounded-full bg-slate-800 border border-slate-700 mx-auto flex items-center justify-center text-slate-400">
-                      <Camera className="w-8 h-8 text-emerald-400" />
-                    </div>
-                    <div className="space-y-1">
-                      <div className="text-sm font-semibold text-white">
-                        Siap Mengambil Swafoto
-                      </div>
-                      <p className="text-xs text-slate-400 max-w-sm">
-                        Kamera siap merekam bukti kehadiran. Presensi akan dicatat pada lokasi kantor{" "}
-                        <strong className="text-emerald-400">{activeOffice.namaKantor}</strong>.
-                      </p>
-                    </div>
+              {/* Error GPS Banner */}
+              {gpsStatus === "denied" && gpsError && (
+                <div className="p-4 rounded-xl bg-red-50 border border-red-200 flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+                  <div className="space-y-1">
+                    <p className="text-sm font-semibold text-red-800">GPS Tidak Tersedia</p>
+                    <p className="text-xs text-red-700 leading-relaxed">{gpsError}</p>
                   </div>
-                )}
-
-                {/* Overlay Metadata */}
-                <div className="absolute bottom-3 left-3 right-3 p-2.5 rounded-xl bg-slate-900/85 backdrop-blur-md border border-slate-700/60 flex items-center justify-between text-xs text-white">
-                  <div className="flex items-center gap-2">
-                    <MapPin className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                    <span className="truncate text-[11px]">
-                      {coords.lat.toFixed(5)}, {coords.lng.toFixed(5)} ({currentDistance}m ke {activeOffice.kodeKantor})
-                    </span>
-                  </div>
-                  <Badge variant="default" className="text-[10px] bg-emerald-500/30 text-emerald-300 border-emerald-500/40">
-                    {gpsStatus === "simulated" ? "Simulasi Lokasi" : "GPS Satelit"}
-                  </Badge>
                 </div>
-              </div>
+              )}
+
+              {/* GPS Anti-Fraud / Accuracy Warning */}
+              {gpsWarning && gpsStatus === "success" && (
+                <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 flex items-start gap-2.5">
+                  <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                  <p className="text-xs text-amber-800 leading-relaxed">{gpsWarning}</p>
+                </div>
+              )}
+
+              {/* Kamera Selfie Nyata dengan Stempel Forensik Digital */}
+              {user && (
+                <CameraCapture
+                  userId={user.id}
+                  orgId={user.orgId}
+                  onCapture={handleFotoCaptured}
+                  onError={(msg) => setCheckInError(msg)}
+                  capturedUrl={existingFotoUrl}
+                  nip={user.nip}
+                  nama={user.nama}
+                  namaKantor={activeOffice.namaKantor}
+                  koordinat={coords}
+                  accuracyMeter={gpsAccuracy}
+                />
+              )}
+
+              {/* Error Check-In / Check-Out */}
+              {checkInError && (
+                <div className="p-3 rounded-lg bg-red-50 border border-red-200 flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+                  <p className="text-xs text-red-700">{checkInError}</p>
+                </div>
+              )}
+              {checkOutError && (
+                <div className="p-3 rounded-lg bg-red-50 border border-red-200 flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+                  <p className="text-xs text-red-700">{checkOutError}</p>
+                </div>
+              )}
 
               {/* Action Buttons: Check-In & Check-Out */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Button
-                  onClick={handleCaptureAndCheckIn}
-                  disabled={isProcessing || !isWithinRadius || !!checkInTime}
-                  className="h-12 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm shadow-md"
+                  onClick={handleCheckIn}
+                  disabled={isProcessing || !!checkInTime || !capturedFotoUrl || !isWithinRadius || gpsStatus !== "success"}
+                  className="h-12 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm shadow-md disabled:opacity-50"
                 >
                   <CheckCircle2 className="w-5 h-5 mr-2" />
-                  {checkInTime ? `Sudah Masuk: ${checkInTime}` : "Ambil Foto & Check-In Masuk"}
+                  {checkInTime ? `Sudah Masuk: ${checkInTime}` :
+                   !capturedFotoUrl ? "Ambil Foto Dulu" :
+                   !isWithinRadius ? "Di Luar Radius" :
+                   "Check-In Masuk Kerja"}
                 </Button>
 
                 <Button
                   onClick={handleCheckOut}
-                  disabled={isProcessing || !checkInTime || !!checkOutTime}
+                  disabled={isProcessing || !checkInTime || !!checkOutTime || gpsStatus !== "success"}
                   variant="outline"
-                  className="h-12 border-slate-300 hover:bg-slate-100 font-semibold text-sm text-slate-800"
+                  className="h-12 border-slate-300 hover:bg-slate-100 font-semibold text-sm text-slate-800 disabled:opacity-50"
                 >
                   <Clock className="w-5 h-5 mr-2 text-teal-600" />
-                  {checkOutTime ? `Sudah Pulang: ${checkOutTime}` : "Check-Out Pulang"}
+                  {checkOutTime ? `Sudah Pulang: ${checkOutTime}` : "Check-Out Pulang Kerja"}
                 </Button>
               </div>
 
@@ -338,34 +413,32 @@ export default function PresensiPage() {
 
               <div className="space-y-1">
                 <span className="text-slate-500 font-medium">Jarak Posisi Anda ke Kantor:</span>
-                <div
-                  className={`p-2.5 rounded-lg border font-bold flex items-center justify-between ${
-                    isWithinRadius
-                      ? "bg-emerald-50 border-emerald-200 text-emerald-900"
-                      : "bg-red-50 border-red-200 text-red-900"
-                  }`}
-                >
-                  <span>{currentDistance} Meter</span>
-                  <Badge variant={isWithinRadius ? "default" : "destructive"} className="text-[10px]">
-                    {isWithinRadius ? `Maksimal ${activeOffice.radiusMeter}m (Valid)` : `Di Luar ${activeOffice.radiusMeter}m`}
-                  </Badge>
-                </div>
-                {!isWithinRadius && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => handleSimulasiLokasi(activeOffice)}
-                    className="w-full mt-2 text-[11px] h-8 border-dashed border-emerald-500 text-emerald-700 hover:bg-emerald-50 font-medium"
+                {gpsStatus === "success" && currentDistance !== null ? (
+                  <div
+                    className={`p-2.5 rounded-lg border font-bold flex items-center justify-between ${
+                      isWithinRadius
+                        ? "bg-emerald-50 border-emerald-200 text-emerald-900"
+                        : "bg-red-50 border-red-200 text-red-900"
+                    }`}
                   >
-                    Simulasi Berada di {activeOffice.kodeKantor} (~15m)
-                  </Button>
+                    <span>{currentDistance} Meter</span>
+                    <Badge variant={isWithinRadius ? "default" : "destructive"} className="text-[10px]">
+                      {isWithinRadius ? `✓ Valid (≤${activeOffice.radiusMeter}m)` : `✗ Di Luar ${activeOffice.radiusMeter}m`}
+                    </Badge>
+                  </div>
+                ) : (
+                  <div className="p-2.5 rounded-lg border bg-amber-50 border-amber-200 text-amber-800 text-[11px]">
+                    GPS belum aktif — aktifkan izin lokasi di browser Anda
+                  </div>
                 )}
               </div>
 
               <div className="space-y-1">
                 <span className="text-slate-500 font-medium">Koordinat GPS Anda:</span>
                 <div className="p-2 rounded-lg bg-slate-100 font-mono text-[11px] text-slate-700">
-                  Lat: {coords.lat.toFixed(6)} | Lng: {coords.lng.toFixed(6)}
+                  {coords
+                    ? `Lat: ${coords.lat.toFixed(6)} | Lng: ${coords.lng.toFixed(6)}`
+                    : "GPS belum tersedia"}
                 </div>
               </div>
             </CardContent>
@@ -381,22 +454,26 @@ export default function PresensiPage() {
                 </span>
               </CardTitle>
               <CardDescription className="text-[11px] text-slate-500">
-                Pilih atau klik simulasi untuk mencoba presensi di lokasi kantor lain
+                Menampilkan jarak real-time dari posisi GPS Anda ke setiap kantor
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-2 text-xs">
-              {nearestResult.allOfficesWithDistance.map(({ office, distanceMeters, isWithinRadius: inRad }) => {
+              {(nearestResult?.allOfficesWithDistance ?? kantorList.map(k => ({
+                office: k,
+                distanceMeters: null,
+                isWithinRadius: false,
+              }))).map(({ office, distanceMeters, isWithinRadius: inRad }) => {
                 const isCurrentActive = office.id === activeOffice.id;
                 return (
                   <div
                     key={office.id}
-                    className={`p-2.5 rounded-lg border transition-all flex items-center justify-between ${
+                    className={`p-2.5 rounded-lg border transition-all ${
                       isCurrentActive
                         ? "bg-teal-50/70 border-teal-300 ring-1 ring-teal-400"
-                        : "bg-slate-50/80 border-slate-200 hover:bg-slate-100"
+                        : "bg-slate-50/80 border-slate-200"
                     }`}
                   >
-                    <div className="space-y-0.5 max-w-[65%]">
+                    <div className="space-y-0.5">
                       <div className="font-semibold text-slate-800 flex items-center gap-1.5 truncate">
                         {isCurrentActive && <Check className="w-3.5 h-3.5 text-teal-600 shrink-0" />}
                         <span className="truncate">{office.namaKantor}</span>
@@ -405,19 +482,12 @@ export default function PresensiPage() {
                         <Badge variant="outline" className="text-[9px] px-1 py-0 border-slate-300">
                           {office.kodeKantor}
                         </Badge>
-                        <span>• Jarak: {distanceMeters}m</span>
+                        {distanceMeters !== null ? (
+                          <span>• Jarak: {distanceMeters}m {inRad ? "✓" : ""}</span>
+                        ) : (
+                          <span>• GPS belum aktif</span>
+                        )}
                       </div>
-                    </div>
-
-                    <div className="flex items-center gap-1">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => handleSimulasiLokasi(office)}
-                        className="h-7 text-[10px] px-2 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800 font-medium"
-                      >
-                        Pindah Sini
-                      </Button>
                     </div>
                   </div>
                 );

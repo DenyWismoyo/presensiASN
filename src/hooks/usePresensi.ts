@@ -6,9 +6,8 @@ import {
   recordCheckIn,
   recordCheckOut,
   getPresensiHistory,
-  CheckInPayload,
-  CheckOutPayload,
 } from "@/actions/presensi";
+import { CheckInPayload, CheckOutPayload } from "@/types";
 
 export function usePresensiHarian(userId?: string, tanggal?: string) {
   return useQuery({

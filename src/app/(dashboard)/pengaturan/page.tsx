@@ -24,6 +24,33 @@ import {
 } from "lucide-react";
 
 import { seedDatabaseAction } from "@/actions/seed";
+import MobilePageHeader from "@/components/dashboard/MobilePageHeader";
+import dynamic from "next/dynamic";
+
+// Dynamic import dengan SSR: false untuk memastikan Leaflet hanya dimuat di client-side (Zero SSR Crash)
+const OfficeLocationPicker = dynamic(
+  () => import("@/components/maps/OfficeLocationPicker"),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="w-full h-[360px] rounded-xl bg-slate-900/5 border border-slate-200 animate-pulse flex items-center justify-center text-xs text-slate-500">
+        Memuat peta interaktif Leaflet OpenStreetMap...
+      </div>
+    ),
+  }
+);
+
+const OfficeOverviewMap = dynamic(
+  () => import("@/components/maps/OfficeOverviewMap"),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="w-full h-[320px] rounded-xl bg-slate-900/5 border border-slate-200 animate-pulse flex items-center justify-center text-xs text-slate-500">
+        Memuat peta sebaran kantor Surakarta...
+      </div>
+    ),
+  }
+);
 
 export default function PengaturanKantorPage() {
   const { user } = useAuth();
@@ -139,8 +166,14 @@ export default function PengaturanKantorPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header Halaman */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      {/* Contextual Mobile Back Header */}
+      <MobilePageHeader
+        title="Pengaturan Kantor & Geofence"
+        subtitle="Manajemen titik koordinat GPS & radius kantor dinas"
+      />
+
+      {/* Header Halaman (Desktop) */}
+      <div className="hidden md:flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
             <Building2 className="w-6 h-6 text-emerald-600" />
@@ -268,18 +301,30 @@ export default function PengaturanKantorPage() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="radiusMeter" className="text-xs text-slate-700">Radius Geofence (Meter)</Label>
-                  <Input
-                    id="radiusMeter"
-                    name="radiusMeter"
-                    type="number"
-                    min="20"
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="radiusMeter" className="text-xs text-slate-700 font-semibold">
+                      Radius Geofence: <span className="text-emerald-700 font-bold">{formData.radiusMeter} Meter</span>
+                    </Label>
+                  </div>
+                  <input
+                    type="range"
+                    min="30"
                     max="500"
+                    step="10"
                     value={formData.radiusMeter}
-                    onChange={handleInputChange}
-                    className="bg-white"
-                    required
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        radiusMeter: Number(e.target.value),
+                      }))
+                    }
+                    className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-emerald-600 mt-2"
                   />
+                  <div className="flex justify-between text-[10px] text-slate-400">
+                    <span>30m (Ketat)</span>
+                    <span>150m (Standar)</span>
+                    <span>500m (Luas)</span>
+                  </div>
                 </div>
 
                 <div className="space-y-1.5">
@@ -303,28 +348,54 @@ export default function PengaturanKantorPage() {
                 </div>
               </div>
 
+              {/* Peta Interaktif Leaflet Penentu Titik Koordinat & Radius */}
+              <div className="space-y-1.5 pt-1">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs text-slate-700 font-semibold flex items-center gap-1.5">
+                    <MapPin className="w-3.5 h-3.5 text-emerald-600" />
+                    Peta Interaktif Penentu Titik & Lingkaran Geofence
+                  </Label>
+                  <span className="text-[10px] text-slate-500">
+                    Geser pin hijau atau klik peta untuk menaruh titik kantor
+                  </span>
+                </div>
+                <OfficeLocationPicker
+                  initialLat={parseFloat(formData.lat) || -7.558392}
+                  initialLng={parseFloat(formData.lng) || 110.857528}
+                  radiusMeter={formData.radiusMeter}
+                  namaKantor={formData.namaKantor || "Titik Kantor Baru"}
+                  onChange={(newLat, newLng) => {
+                    setFormData((prev) => ({
+                      ...prev,
+                      lat: newLat.toString(),
+                      lng: newLng.toString(),
+                    }));
+                  }}
+                />
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <Label htmlFor="lat" className="text-xs text-slate-700">Latitude GPS</Label>
+                  <Label htmlFor="lat" className="text-xs text-slate-700">Latitude GPS (Terisi Otomatis)</Label>
                   <Input
                     id="lat"
                     name="lat"
                     placeholder="-7.568500"
                     value={formData.lat}
                     onChange={handleInputChange}
-                    className="bg-white font-mono"
+                    className="bg-white font-mono font-semibold text-slate-800"
                     required
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="lng" className="text-xs text-slate-700">Longitude GPS</Label>
+                  <Label htmlFor="lng" className="text-xs text-slate-700">Longitude GPS (Terisi Otomatis)</Label>
                   <Input
                     id="lng"
                     name="lng"
                     placeholder="110.828000"
                     value={formData.lng}
                     onChange={handleInputChange}
-                    className="bg-white font-mono"
+                    className="bg-white font-mono font-semibold text-slate-800"
                     required
                   />
                 </div>
@@ -364,6 +435,9 @@ export default function PengaturanKantorPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Peta Sebaran Makro Geofence Seluruh Kantor ASN */}
+      <OfficeOverviewMap offices={offices} />
 
       {/* Tabel Daftar Seluruh Titik Kantor */}
       <Card className="border-slate-200/80 shadow-sm overflow-hidden">

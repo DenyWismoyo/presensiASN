@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import AppProviders from "@/components/providers/QueryProvider";
@@ -13,10 +13,24 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+export const viewport: Viewport = {
+  themeColor: "#059669",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  viewportFit: "cover",
+};
+
 export const metadata: Metadata = {
   title: "Sistem Presensi & LKH Pegawai ASN",
   description:
     "Sistem Presensi Digital Berbasis Lokasi GPS & Foto Selfie serta Laporan Kegiatan Harian (LKH) Pegawai Aparatur Sipil Negara",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Presensi ASN",
+  },
 };
 
 export default function RootLayout({
