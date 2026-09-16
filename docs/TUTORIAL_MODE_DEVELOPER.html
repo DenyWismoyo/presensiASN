@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Panduan Pengujian Mode Developer - Presensi ASN</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 8mm 12mm 10mm 12mm;
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      color: #0f172a;
+      background-color: #ffffff;
+      line-height: 1.35;
+      font-size: 8.5pt;
+      margin: 0;
+      padding: 0;
+    }
+
+    /* Kop Dokumen */
+    .header {
+      border-bottom: 2px solid #059669;
+      padding-bottom: 6px;
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .emblem {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, #059669, #0f766e);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ffffff;
+      font-weight: 800;
+      font-size: 13pt;
+      letter-spacing: -0.5px;
+      box-shadow: 0 2px 4px rgba(5, 150, 105, 0.2);
+    }
+
+    .title-group h1 {
+      margin: 0;
+      font-size: 12pt;
+      color: #0f172a;
+      font-weight: 800;
+      letter-spacing: -0.3px;
+    }
+
+    .title-group p {
+      margin: 1px 0 0 0;
+      font-size: 7.5pt;
+      color: #64748b;
+      font-weight: 500;
+    }
+
+    .header-badge {
+      background: #ecfdf5;
+      border: 1px solid #a7f3d0;
+      color: #065f46;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 7.5pt;
+      font-weight: 700;
+      text-transform: uppercase;
+      text-align: right;
+      line-height: 1.2;
+    }
+
+    /* Section styling */
+    h2 {
+      color: #0f172a;
+      font-size: 9.5pt;
+      font-weight: 700;
+      margin: 8px 0 4px 0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      border-left: 3px solid #059669;
+      padding-left: 6px;
+    }
+
+    p, ul {
+      margin: 2px 0 4px 0;
+    }
+
+    ul {
+      padding-left: 14px;
+    }
+
+    li {
+      margin-bottom: 2px;
+    }
+
+    /* Callout Card */
+    .callout {
+      border-radius: 6px;
+      padding: 6px 10px;
+      margin: 5px 0;
+      font-size: 8pt;
+      line-height: 1.35;
+    }
+
+    .callout-emerald {
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      color: #166534;
+    }
+
+    .callout-amber {
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      color: #92400e;
+    }
+
+    /* Table */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 5px 0;
+      font-size: 8pt;
+    }
+
+    th, td {
+      border: 1px solid #cbd5e1;
+      padding: 4px 6px;
+      text-align: left;
+      vertical-align: middle;
+    }
+
+    th {
+      background-color: #f1f5f9;
+      color: #334155;
+      font-weight: 700;
+      font-size: 7.5pt;
+      text-transform: uppercase;
+    }
+
+    tr:nth-child(even) td {
+      background-color: #f8fafc;
+    }
+
+    /* Badge */
+    .badge {
+      display: inline-block;
+      padding: 1px 5px;
+      border-radius: 3px;
+      font-size: 7pt;
+      font-weight: 700;
+    }
+
+    .badge-admin { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+    .badge-atasan { background: #ede9fe; color: #5b21b6; border: 1px solid #ddd6fe; }
+    .badge-pegawai { background: #e0f2fe; color: #075985; border: 1px solid #bae6fd; }
+
+    /* Step Card */
+    .step-box {
+      border: 1px solid #e2e8f0;
+      border-radius: 5px;
+      padding: 5px 8px;
+      margin-bottom: 5px;
+      background: #ffffff;
+      page-break-inside: avoid;
+    }
+
+    .step-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2px;
+      border-bottom: 1px dashed #e2e8f0;
+      padding-bottom: 2px;
+    }
+
+    .step-title {
+      font-weight: 700;
+      color: #0f172a;
+      font-size: 8.5pt;
+    }
+
+    .code-inline {
+      background: #f1f5f9;
+      color: #0f172a;
+      padding: 0 3px;
+      border-radius: 3px;
+      font-family: Consolas, monospace;
+      font-size: 7.5pt;
+      border: 1px solid #e2e8f0;
+    }
+
+    .page-break {
+      page-break-before: always;
+    }
+
+    .footer-note {
+      margin-top: 6px;
+      padding-top: 5px;
+      border-top: 1px solid #e2e8f0;
+      font-size: 7pt;
+      color: #64748b;
+      display: flex;
+      justify-content: space-between;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ==================== HALAMAN 1 ==================== -->
+  <div class="header">
+    <div class="header-left">
+      <div class="emblem">ASN</div>
+      <div class="title-group">
+        <h1>SI-PRESENSI ASN KOTA SURAKARTA</h1>
+        <p>Panduan Pengujian Sistem Mode Developer &bull; Bagian I: Alur Pegawai</p>
+      </div>
+    </div>
+    <div class="header-badge">
+      Mode Developer<br>
+      <span style="font-size: 6.5pt; font-weight: normal;">Halaman 1 / 2</span>
+    </div>
+  </div>
+
+  <div class="callout callout-emerald">
+    <strong>💡 Siap Diuji Tanpa Setup:</strong> Seluruh data simulasi (ASN, 30 hari riwayat presensi, dan berkas LKH siap dinilai) telah dimuat di <strong>In-Memory Dev Store</strong>. Buka <code class="code-inline">http://localhost:3000/login</code> dan klik salah satu tombol akun untuk langsung masuk tanpa konfigurasi database.
+  </div>
+
+  <!-- TABEL AKUN DEV -->
+  <h2>1. Akun Pengujian Cepat (Quick Test Accounts)</h2>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 14%;">Peran</th>
+        <th style="width: 27%;">Nama & NIP Pegawai</th>
+        <th style="width: 27%;">Email Kedinasan</th>
+        <th style="width: 16%;">Penugasan</th>
+        <th style="width: 16%;">Fitur Utama</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="badge badge-pegawai">Pegawai</span></td>
+        <td><strong>Budi Santoso, S.Kom.</strong><br><span style="font-size: 7pt; color: #64748b;">NIP: 19920817 201801 1 002</span></td>
+        <td><code class="code-inline">budi.santoso@surakarta.go.id</code><br><span style="font-size: 6.5pt; color: #64748b;">Sandi: asn123456</span></td>
+        <td>Solo Teknopark</td>
+        <td>Presensi Selfie, LKH, Izin</td>
+      </tr>
+      <tr>
+        <td><span class="badge badge-atasan">Atasan</span></td>
+        <td><strong>Dra. Siti Rahmawati, M.Si.</strong><br><span style="font-size: 7pt; color: #64748b;">NIP: 19780412 200502 2 001</span></td>
+        <td><code class="code-inline">siti.rahmawati@surakarta.go.id</code><br><span style="font-size: 6.5pt; color: #64748b;">Sandi: asn123456</span></td>
+        <td>Solo Teknopark</td>
+        <td>Batch Approval, Rekap Tim</td>
+      </tr>
+      <tr>
+        <td><span class="badge badge-admin">Admin</span></td>
+        <td><strong>Hendra Wijaya, S.STP, M.AP</strong><br><span style="font-size: 7pt; color: #64748b;">NIP: 19850101 201001 1 005</span></td>
+        <td><code class="code-inline">admin.stp@surakarta.go.id</code><br><span style="font-size: 6.5pt; color: #64748b;">Sandi: asn123456</span></td>
+        <td>BKPSDM</td>
+        <td>Data Pegawai, Peta, Rekap</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- ALUR PENGUJIAN FITUR PEGAWAI -->
+  <h2>2. Pengujian Alur Kerja Pegawai (Budi Santoso)</h2>
+
+  <div class="step-box">
+    <div class="step-header">
+      <span class="step-title">Langkah 1: Dashboard & Widget Presensi Kilat</span>
+      <span class="badge badge-pegawai">Menu: /</span>
+    </div>
+    <ul>
+      <li>Masuk dengan klik tombol cepat <strong>"Masuk sbg Pegawai"</strong> di halaman login (<code class="code-inline">/login</code>).</li>
+      <li><strong>Radar GPS Real-time</strong>: Amati kartu atas yang menghitung jarak meter ke kantor penugasan secara langsung.</li>
+      <li><strong>Tombol 1-Tap & Hitung Mundur</strong>: Terdapat countdown batas jam masuk (07:30 WIB) dan tombol presensi kilat.</li>
+      <li><strong>Riwayat Presensi</strong>: Kalender kehadiran 30 hari sudah terisi data presensi aktif realistis.</li>
+    </ul>
+  </div>
+
+  <div class="step-box">
+    <div class="step-header">
+      <span class="step-title">Langkah 2: Presensi Selfie dengan Suite Anti-Fraud</span>
+      <span class="badge badge-pegawai">Menu: /presensi</span>
+    </div>
+    <ul>
+      <li>Buka menu <strong>Presensi Harian</strong> dari BottomNav atau drawer samping. Izinkan akses kamera & GPS.</li>
+      <li><strong>Forensic Watermark Stamp</strong>: Klik <em>Ambil Foto</em>. Di dasar canvas tercap otomatis pita resmi: Logo Pemkot, NIP, Nama ASN, Koordinat Latitude/Longitude, Nama Kantor, dan Jam WIB.</li>
+      <li><strong>Uji Analisis Kecerahan</strong>: Tutup lensa kamera (gelap pekat). Sistem otomatis menolak dan meminta pencahayaan cukup.</li>
+      <li><strong>Validasi Lokasi Server-Side</strong>: Jarak diverifikasi ulang di server independen. Keberhasilan ditandai <em>Audio Chime C5-E5-G5</em> dan getaran haptic ponsel.</li>
+    </ul>
+  </div>
+
+  <div class="step-box">
+    <div class="step-header">
+      <span class="step-title">Langkah 3: Pengisian Logbook Kinerja Harian (LKH)</span>
+      <span class="badge badge-pegawai">Menu: /laporan</span>
+    </div>
+    <ul>
+      <li>Buka menu <strong>Laporan Kegiatan (LKH)</strong>.</li>
+      <li><strong>Template Cepat 1-Klik</strong>: Klik salah satu chip template (misal: <em>Rapat Koordinasi</em> atau <em>Pelayanan Publik</em>). Formulir, jam kegiatan, uraian tugas, dan output SKP terisi instan dalam 1 ketukan.</li>
+      <li><strong>Target Standar SKP</strong>: Indikator menghitung capaian harian menuju target <strong>300 poin/hari</strong>. Progress bar berubah hijau ketika target terpenuhi. Klik <strong>Simpan Laporan</strong> untuk mengirim ke Atasan.</li>
+    </ul>
+  </div>
+
+  <div class="footer-note">
+    <span>SI-PRESENSI ASN Pemerintah Kota Surakarta &copy; 2026</span>
+    <span>Panduan Pengujian Mode Developer &bull; Halaman 1 dari 2</span>
+  </div>
+
+  <!-- ==================== HALAMAN 2 ==================== -->
+  <div class="page-break"></div>
+
+  <div class="header">
+    <div class="header-left">
+      <div class="emblem">ASN</div>
+      <div class="title-group">
+        <h1>SI-PRESENSI ASN KOTA SURAKARTA</h1>
+        <p>Panduan Pengujian Sistem Mode Developer &bull; Bagian II: Atasan & Administrator</p>
+      </div>
+    </div>
+    <div class="header-badge">
+      Mode Developer<br>
+      <span style="font-size: 6.5pt; font-weight: normal;">Halaman 2 / 2</span>
+    </div>
+  </div>
+
+  <!-- ALUR PENGUJIAN FITUR ATASAN -->
+  <h2>3. Pengujian Alur Kerja Pejabat Penilai / Atasan (Siti Rahmawati)</h2>
+
+  <div class="step-box">
+    <div class="step-header">
+      <span class="step-title">Langkah 4: Evaluasi Tim & Batch Approval LKH 1-Klik</span>
+      <span class="badge badge-atasan">Menu: /approval</span>
+    </div>
+    <ul>
+      <li>Keluar lalu login sebagai <strong>Dra. Siti Rahmawati</strong> melalui tombol cepat di halaman login.</li>
+      <li><strong>Indikator Laporan Menunggu</strong>: Amati badge merah berdenyut (<strong>🔴 2</strong>) pada menu <em>Approval</em> di navigasi bawah ponsel.</li>
+      <li><strong>Review Individual</strong>: Klik pada laporan bawahan untuk melihat rincian menit kerja, bukti foto, serta opsi catatan revisi.</li>
+      <li><strong>Batch Approval</strong>: Klik tombol hijau <strong>"Setujui Semua Lolos Syarat"</strong>. Seluruh laporan bawahan yang mencapai &ge; 300 poin SKP langsung disetujui sekaligus dalam satu sentuhan.</li>
+    </ul>
+  </div>
+
+  <!-- ALUR PENGUJIAN FITUR ADMIN -->
+  <h2>4. Pengujian Fitur Administrator BKPSDM (Hendra Wijaya)</h2>
+
+  <div class="step-box">
+    <div class="step-header">
+      <span class="step-title">Langkah 5: Peta Geofencing Interaktif Leaflet</span>
+      <span class="badge badge-admin">Menu: /pengaturan</span>
+    </div>
+    <ul>
+      <li>Login sebagai <strong>Hendra Wijaya</strong> dan akses menu <strong>Pengaturan Kantor</strong>.</li>
+      <li><strong>Interaksi Peta</strong>: Geser Pin Marker di peta Solo, atau klik <em>"Gunakan Lokasi Saya"</em>. Koordinat Latitude/Longitude langsung tersinkronisasi dua arah.</li>
+      <li><strong>Slider Geofence Dinamis</strong>: Geser slider radius (50m - 1000m). Lingkaran hijau geofence di peta langsung membesar/mengecil secara real-time. Bagian bawah menampilkan peta sebaran kantor aktif di Surakarta.</li>
+    </ul>
+  </div>
+
+  <div class="step-box">
+    <div class="step-header">
+      <span class="step-title">Langkah 6: Manajemen Data Pegawai & Pembuatan Akun Baru</span>
+      <span class="badge badge-admin">Menu: /pegawai</span>
+    </div>
+    <ul>
+      <li>Buka menu <strong>Data Pegawai ASN</strong> (<code class="code-inline">/pegawai</code>). Lakukan pencarian nama/NIP dan filter unit kantor.</li>
+      <li><strong>Pendaftaran Pegawai Baru</strong>: Klik <strong>"+ Tambah Pegawai"</strong>. Masukkan NIP 18 digit (terformat otomatis standar BKN), Nama Lengkap beserta Gelar, Golongan Ruang (I/a - IV/e), dan Atasan Langsung.</li>
+      <li>Klik <strong>Simpan Data Pegawai</strong>. Akun baru langsung terdaftar dan dapat langsung digunakan untuk login saat itu juga.</li>
+    </ul>
+  </div>
+
+  <div class="step-box">
+    <div class="step-header">
+      <span class="step-title">Langkah 7: Rekapitulasi, Analisis Statistik & Cetak Dokumen</span>
+      <span class="badge badge-admin">Menu: /statistik</span>
+    </div>
+    <ul>
+      <li>Buka menu <strong>Rekap & Statistik</strong> (<code class="code-inline">/statistik</code>). Terdapat filter Bulan, Tahun, dan Unit Kantor.</li>
+      <li><strong>4 Metrik KPI & Grafik Tren</strong>: Amati rata-rata kehadiran %, rasio datang sebelum 07:30 WIB, rata-rata SKP, dan grafik tren 7 hari kerja.</li>
+      <li><strong>Predikat Disiplin & Cetak</strong>: Tabel merangkum predikat kedinasan (<em>Sangat Baik, Baik, Cukup, Perlu Pembinaan</em>). Klik tombol <strong>"Cetak Laporan"</strong> untuk format resmi Kop Surat BKPSDM dan lembar pengesahan tanda tangan.</li>
+    </ul>
+  </div>
+
+  <!-- CATATAN PENGUJIAN MOBILE -->
+  <h2>5. Tips Pengujian Layar Ponsel & Reset Lingkungan</h2>
+  <div class="callout callout-amber">
+    <ul style="margin: 0; padding-left: 14px;">
+      <li><strong>Simulasi Layar Ponsel</strong>: Buka DevTools (<kbd>F12</kbd>) &rarr; aktifkan <em>Toggle Device Toolbar</em> (<kbd>Ctrl+Shift+M</kbd>) pilih iPhone/Pixel untuk menguji kenyamanan BottomNav dan laci Hamburger Menu.</li>
+      <li><strong>Network Sentinel</strong>: Ubah network ke <em>Offline</em> di tab Network. Banner merah peringatan koneksi akan muncul di atas layar.</li>
+      <li><strong>Reset Data Simulasi</strong>: Untuk mengembalikan data ke kondisi awal, cukup restart server dev (<code class="code-inline">pnpm run dev</code>).</li>
+    </ul>
+  </div>
+
+  <div class="footer-note">
+    <span>SI-PRESENSI ASN Pemerintah Kota Surakarta &copy; 2026</span>
+    <span>Panduan Pengujian Mode Developer &bull; Halaman 2 dari 2</span>
+  </div>
+
+</body>
+</html>
