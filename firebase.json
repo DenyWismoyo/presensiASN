@@ -1,0 +1,15 @@
+{
+  "firestore": [
+    {
+      "database": "presensi-pegawai",
+      "rules": "firestore.rules"
+    },
+    {
+      "database": "(default)",
+      "rules": "firestore.rules"
+    }
+  ],
+  "storage": {
+    "rules": "storage.rules"
+  }
+}
