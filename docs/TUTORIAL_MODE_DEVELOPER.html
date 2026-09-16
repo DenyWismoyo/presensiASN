@@ -228,17 +228,18 @@
       <div class="emblem">ASN</div>
       <div class="title-group">
         <h1>SI-PRESENSI ASN KOTA SURAKARTA</h1>
-        <p>Panduan Pengujian Sistem Mode Developer &bull; Bagian I: Alur Pegawai</p>
+        <p>Panduan Pengujian Sistem & Mode Developer &bull; Live: presensiasn.vercel.app</p>
       </div>
     </div>
     <div class="header-badge">
-      Mode Developer<br>
+      Deploy Vercel Live<br>
       <span style="font-size: 6.5pt; font-weight: normal;">Halaman 1 / 2</span>
     </div>
   </div>
 
   <div class="callout callout-emerald">
-    <strong>💡 Siap Diuji Tanpa Setup:</strong> Seluruh data simulasi (ASN, 30 hari riwayat presensi, dan berkas LKH siap dinilai) telah dimuat di <strong>In-Memory Dev Store</strong>. Buka <code class="code-inline">http://localhost:3000/login</code> dan klik salah satu tombol akun untuk langsung masuk tanpa konfigurasi database.
+    <strong>🌐 URL Aplikasi Live:</strong> <a href="https://presensiasn.vercel.app/" style="color: #047857; font-weight: 700; text-decoration: underline;">https://presensiasn.vercel.app/</a> &bull; <strong>Status:</strong> Aktif & Siap Diuji<br>
+    <strong>💡 Siap Diuji Tanpa Setup:</strong> Seluruh data simulasi (ASN, 30 hari riwayat presensi, dan berkas LKH siap dinilai) telah aktif. Buka tautan di atas melalui ponsel atau PC, lalu klik salah satu kartu akun di halaman login untuk langsung masuk tanpa konfigurasi database manual.
   </div>
 
   <!-- TABEL AKUN DEV -->
@@ -287,7 +288,7 @@
       <span class="badge badge-pegawai">Menu: /</span>
     </div>
     <ul>
-      <li>Masuk dengan klik tombol cepat <strong>"Masuk sbg Pegawai"</strong> di halaman login (<code class="code-inline">/login</code>).</li>
+      <li>Buka <code class="code-inline">https://presensiasn.vercel.app/login</code>, lalu klik tombol cepat <strong>"Masuk sbg Pegawai"</strong>.</li>
       <li><strong>Radar GPS Real-time</strong>: Amati kartu atas yang menghitung jarak meter ke kantor penugasan secara langsung.</li>
       <li><strong>Tombol 1-Tap & Hitung Mundur</strong>: Terdapat countdown batas jam masuk (07:30 WIB) dan tombol presensi kilat.</li>
       <li><strong>Riwayat Presensi</strong>: Kalender kehadiran 30 hari sudah terisi data presensi aktif realistis.</li>
@@ -400,9 +401,9 @@
   <h2>5. Tips Pengujian Layar Ponsel & Reset Lingkungan</h2>
   <div class="callout callout-amber">
     <ul style="margin: 0; padding-left: 14px;">
-      <li><strong>Simulasi Layar Ponsel</strong>: Buka DevTools (<kbd>F12</kbd>) &rarr; aktifkan <em>Toggle Device Toolbar</em> (<kbd>Ctrl+Shift+M</kbd>) pilih iPhone/Pixel untuk menguji kenyamanan BottomNav dan laci Hamburger Menu.</li>
-      <li><strong>Network Sentinel</strong>: Ubah network ke <em>Offline</em> di tab Network. Banner merah peringatan koneksi akan muncul di atas layar.</li>
-      <li><strong>Reset Data Simulasi</strong>: Untuk mengembalikan data ke kondisi awal, cukup restart server dev (<code class="code-inline">pnpm run dev</code>).</li>
+      <li><strong>Instalasi PWA di Ponsel Fisik</strong>: Buka <code class="code-inline">https://presensiasn.vercel.app</code> di Chrome/Safari ponsel Anda &rarr; pilih menu browser &rarr; <em>"Tambahkan ke Layar Utama" (Add to Home Screen)</em> untuk pengalaman native fullscreen tanpa bilah URL browser.</li>
+      <li><strong>Simulasi Layar Ponsel di PC</strong>: Buka DevTools (<kbd>F12</kbd>) &rarr; aktifkan <em>Toggle Device Toolbar</em> (<kbd>Ctrl+Shift+M</kbd>) pilih iPhone/Pixel untuk menguji kenyamanan BottomNav dan laci Hamburger Menu.</li>
+      <li><strong>Network Sentinel</strong>: Ubah network ke <em>Offline</em> di tab Network. Banner merah peringatan koneksi akan muncul instan di atas layar.</li>
     </ul>
   </div>
 
