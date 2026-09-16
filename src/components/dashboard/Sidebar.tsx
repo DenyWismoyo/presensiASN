@@ -76,7 +76,7 @@ export default function Sidebar() {
       name: "Pengaturan Kantor",
       href: "/pengaturan",
       icon: Settings,
-      roles: ["admin"],
+      roles: ["admin", "atasan"],
     },
   ];
 

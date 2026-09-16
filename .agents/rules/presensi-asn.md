@@ -202,5 +202,25 @@ export async function loginASN(nipOrEmail: string, password: string) {
 }
 ```
 
+---
 
-
+## Standar Multi-Kantor Geofencing ASN
+- **Arsitektur Multi-Kantor**:
+  - Aplikasi mendukung banyak unit kantor terpisah dalam satu instansi pemerintah/OPD/wilayah pemkot (Pusat Balaikota, OPD Dinas, Kantor Kecamatan, Kawasan Khusus/Solo Teknopark).
+- **Struktur Entitas Kantor (`KantorUnit`)**:
+  - `id`: identifier unik kantor (e.g. `kantor-stp`, `kantor-balaikota`)
+  - `kodeKantor`: kode singkat (e.g. `STP-01`, `SETDA-01`, `BKPSDM-01`)
+  - `namaKantor`: nama resmi instansi
+  - `kategori`: `Pusat` | `OPD / Dinas` | `Kecamatan` | `Kelurahan` | `UPTD / Sekolah` | `Kawasan Khusus`
+  - `koordinat`: `{ lat: number, lng: number }` (presisi satelit GPS)
+  - `radiusMeter`: radius batas geofence toleransi (default 120m - 200m)
+  - `jamMasukMaksimal` & `jamPulangMinimal`: jam kerja fleksibel per kantor
+  - `orgId`: ID organisasi/pemerintah kota
+  - `isActive`: boolean status penerimaan presensi
+- **Kalkulasi Jarak & Deteksi Otomatis**:
+  - Gunakan formula **Haversine** (`calculateHaversineDistance` di `src/data/masterKantor.ts`) untuk presisi kurvatur bumi.
+  - Sediakan **Auto-Detection** (`detectNearestOffice`) untuk memilih kantor terdekat secara cerdas berdasarkan GPS aktual pegawai.
+- **Koleksi Firestore**:
+  - Master titik kantor disimpan pada koleksi `kantor` di database `"presensi-pegawai"`.
+- **Integritas Rekam Presensi**:
+  - Setiap record check-in/check-out wajib menyertakan `kantorId`, `namaKantor`, `jarakMeter`, dan `isValidLocation` agar atasan dapat memverifikasi presensi di kantor tujuan/tugas luar.

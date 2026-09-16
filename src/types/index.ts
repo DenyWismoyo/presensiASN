@@ -27,9 +27,35 @@ export interface UserProfile {
   fotoUrl?: string;
   orgId: string;
   nomorHp?: string;
+  kantorId?: string;
+  namaKantor?: string;
+  allowedKantorIds?: string[];
   storageUsedBytes: number; // Bytes terpakai saat ini
   storageLimitBytes: number; // 1 GB = 1073741824 bytes
   createdAt?: string;
+}
+
+export type KategoriKantor =
+  | "Pusat"
+  | "OPD / Dinas"
+  | "Kecamatan"
+  | "Kelurahan"
+  | "UPTD"
+  | "Puskesmas"
+  | "Kawasan Khusus";
+
+export interface KantorUnit {
+  id: string;
+  kodeKantor: string;
+  namaKantor: string;
+  kategori: KategoriKantor;
+  alamat: string;
+  koordinat: GeolocationPoint;
+  radiusMeter: number;
+  jamMasukMaksimal?: string;
+  jamPulangMinimal?: string;
+  orgId: string;
+  isActive: boolean;
 }
 
 export interface UploadedFileMetadata {
@@ -55,6 +81,9 @@ export interface PresensiCheckPoint {
   koordinat: GeolocationPoint;
   fotoUrl: string;
   isValidLocation: boolean;
+  kantorId?: string;
+  namaKantor?: string;
+  jarakMeter?: number;
   alamat?: string;
   catatan?: string;
 }
@@ -66,6 +95,8 @@ export interface PresensiRecord {
   nama: string;
   orgId: string;
   tanggal: string; // Format: YYYY-MM-DD
+  kantorId?: string;
+  namaKantor?: string;
   checkIn?: PresensiCheckPoint;
   checkOut?: PresensiCheckPoint;
   status: PresensiStatus;

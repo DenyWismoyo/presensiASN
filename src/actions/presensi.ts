@@ -19,6 +19,9 @@ export interface CheckInPayload {
   nama: string;
   orgId: string;
   tanggal: string; // YYYY-MM-DD
+  kantorId?: string;
+  namaKantor?: string;
+  jarakMeter?: number;
   koordinat: GeolocationPoint;
   fotoUrl: string;
   isValidLocation: boolean;
@@ -29,6 +32,9 @@ export interface CheckInPayload {
 export interface CheckOutPayload {
   userId: string;
   tanggal: string; // YYYY-MM-DD
+  kantorId?: string;
+  namaKantor?: string;
+  jarakMeter?: number;
   koordinat: GeolocationPoint;
   fotoUrl: string;
   isValidLocation: boolean;
@@ -67,7 +73,21 @@ export async function getPresensiToday(
 export async function recordCheckIn(
   payload: CheckInPayload
 ): Promise<{ success: boolean; data?: PresensiRecord; message?: string }> {
-  const { userId, nip, nama, orgId, tanggal, koordinat, fotoUrl, isValidLocation, alamat, catatan } = payload;
+  const {
+    userId,
+    nip,
+    nama,
+    orgId,
+    tanggal,
+    kantorId,
+    namaKantor,
+    jarakMeter,
+    koordinat,
+    fotoUrl,
+    isValidLocation,
+    alamat,
+    catatan,
+  } = payload;
   const docId = generateDocId(userId, tanggal);
   const now = new Date();
 
@@ -85,13 +105,18 @@ export async function recordCheckIn(
     nama,
     orgId,
     tanggal,
+    kantorId,
+    namaKantor,
     status,
     checkIn: {
       waktu: now.toISOString(),
       koordinat,
       fotoUrl,
       isValidLocation,
-      alamat: alamat || "Lingkungan Kantor Pemerintah",
+      kantorId,
+      namaKantor,
+      jarakMeter,
+      alamat: alamat || (namaKantor ? `Kawasan ${namaKantor}` : "Lingkungan Kantor Pemerintah"),
       catatan,
     },
   };
@@ -118,7 +143,18 @@ export async function recordCheckIn(
 export async function recordCheckOut(
   payload: CheckOutPayload
 ): Promise<{ success: boolean; data?: PresensiRecord; message?: string }> {
-  const { userId, tanggal, koordinat, fotoUrl, isValidLocation, alamat, catatan } = payload;
+  const {
+    userId,
+    tanggal,
+    kantorId,
+    namaKantor,
+    jarakMeter,
+    koordinat,
+    fotoUrl,
+    isValidLocation,
+    alamat,
+    catatan,
+  } = payload;
   const docId = generateDocId(userId, tanggal);
   const now = new Date();
 
@@ -142,12 +178,17 @@ export async function recordCheckOut(
   const updatedRecord: PresensiRecord = {
     ...existing,
     durasiKerjaMenit,
+    kantorId: kantorId || existing.kantorId,
+    namaKantor: namaKantor || existing.namaKantor,
     checkOut: {
       waktu: now.toISOString(),
       koordinat,
       fotoUrl,
       isValidLocation,
-      alamat: alamat || "Lingkungan Kantor Pemerintah",
+      kantorId: kantorId || existing.checkIn?.kantorId,
+      namaKantor: namaKantor || existing.checkIn?.namaKantor,
+      jarakMeter,
+      alamat: alamat || (namaKantor ? `Kawasan ${namaKantor}` : "Lingkungan Kantor Pemerintah"),
       catatan,
     },
   };
