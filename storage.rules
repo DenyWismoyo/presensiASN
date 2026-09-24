@@ -11,10 +11,7 @@ service firebase.storage {
     }
 
     function isAtasanOrAdmin() {
-      return isAuthenticated() && (
-        request.auth.token.role in ['admin', 'atasan'] ||
-        (request.auth.token.email != null && request.auth.token.email.matches('.*@surakarta\\.go\\.id'))
-      );
+      return isAuthenticated() && request.auth.token.role in ['admin', 'atasan'];
     }
 
     // 1. Path Hierarki Standar ASN: /presensi-pegawai/{orgId}/{userId}/{allPaths=**}

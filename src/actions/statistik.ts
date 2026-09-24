@@ -64,7 +64,7 @@ export interface RekapStatistikData {
  * Fungsi inti kalkulasi rekapitulasi data (dapat dipanggil dari server action atau script test)
  */
 export async function calculateRekapStatistik(
-  params: { bulan?: number; tahun?: number; kantorId?: string },
+  params: { bulan?: number; tahun?: number; kantorId?: string; orgId?: string },
   userRole: string = "admin",
   userId?: string
 ): Promise<RekapStatistikData> {
@@ -81,6 +81,9 @@ export async function calculateRekapStatistik(
       if (kantorFilter && kantorFilter !== "all") {
         query = query.where("kantorId", "==", kantorFilter);
       }
+      if (params.orgId) {
+        query = query.where("orgId", "==", params.orgId);
+      }
       const snap = await query.get();
       if (!snap.empty) {
         pegawaiList = snap.docs.map((d) => d.data() as UserProfile);
@@ -94,6 +97,9 @@ export async function calculateRekapStatistik(
     pegawaiList = Array.from(getDevUsersStore().values());
     if (kantorFilter && kantorFilter !== "all") {
       pegawaiList = pegawaiList.filter((p) => p.kantorId === kantorFilter);
+    }
+    if (params.orgId) {
+      pegawaiList = pegawaiList.filter((p) => p.orgId === params.orgId);
     }
   }
 
@@ -116,20 +122,26 @@ export async function calculateRekapStatistik(
 
   if (isFirebaseAdminConfigured()) {
     try {
-      const pSnap = await adminDb
-        .collection("presensi")
+      let pQuery: FirebaseFirestore.Query = adminDb.collection("presensi")
         .where("tanggal", ">=", `${prefixTanggal}-01`)
-        .where("tanggal", "<=", `${prefixTanggal}-31`)
-        .get();
+        .where("tanggal", "<=", `${prefixTanggal}-31`);
+      
+      if (params.orgId) {
+        pQuery = pQuery.where("orgId", "==", params.orgId);
+      }
+      const pSnap = await pQuery.get();
       if (!pSnap.empty) {
         presensiRecords = pSnap.docs.map((d) => d.data() as PresensiRecord);
       }
 
-      const lSnap = await adminDb
-        .collection("lkh")
+      let lQuery: FirebaseFirestore.Query = adminDb.collection("lkh")
         .where("tanggal", ">=", `${prefixTanggal}-01`)
-        .where("tanggal", "<=", `${prefixTanggal}-31`)
-        .get();
+        .where("tanggal", "<=", `${prefixTanggal}-31`);
+        
+      if (params.orgId) {
+        lQuery = lQuery.where("orgId", "==", params.orgId);
+      }
+      const lSnap = await lQuery.get();
       if (!lSnap.empty) {
         lkhRecords = lSnap.docs.map((d) => d.data() as LKHRecord);
       }
@@ -140,9 +152,11 @@ export async function calculateRekapStatistik(
 
   if (presensiRecords.length === 0 && process.env.NODE_ENV !== "production") {
     presensiRecords = Array.from(getDevPresensiStore().values());
+    if (params.orgId) presensiRecords = presensiRecords.filter(r => r.orgId === params.orgId);
   }
   if (lkhRecords.length === 0 && process.env.NODE_ENV !== "production") {
     lkhRecords = Array.from(getDevLKHStore().values());
+    if (params.orgId) lkhRecords = lkhRecords.filter(l => l.orgId === params.orgId);
   }
 
   // Hitung jumlah hari kerja resmi pada bulan tersebut (Senin-Jumat)
@@ -265,7 +279,7 @@ export async function calculateRekapStatistik(
       jabatan: p.jabatan,
       golongan: p.golongan,
       kantorId: p.kantorId || "kantor-stp",
-      namaKantor: p.namaKantor || "Solo Teknopark",
+      namaKantor: p.namaKantor || "Kantor Pusat",
       totalHariKerja,
       hadirCount: effectiveHadir,
       terlambatCount: effectiveTerlambat,
@@ -332,17 +346,17 @@ export async function calculateRekapStatistik(
 
   const summary: StatistikSummary = {
     totalPegawai: pegawaiList.length,
-    rataRataKehadiranRate: Math.min(100, Math.max(88, avgKehadiran)),
-    disiplinWaktuRate: Math.min(100, Math.max(85, disiplinRate || 92)),
-    rataRataPoinLkh: Math.max(TARGET_POIN_HARIAN, rataRataPoinLkh),
+    rataRataKehadiranRate: Math.min(100, Math.max(0, avgKehadiran)),
+    disiplinWaktuRate: Math.min(100, Math.max(0, disiplinRate || 0)),
+    rataRataPoinLkh: rataRataPoinLkh,
     targetPoinStandar: TARGET_POIN_HARIAN,
-    persentaseTargetLkhTercapai: Math.min(100, Math.max(90, persentaseTargetLkh)),
-    totalHadir: sumHadir || 84,
-    totalTerlambat: sumTerlambat || 4,
-    totalIzinDinas: sumIzin || 2,
-    totalCuti: sumCuti || 1,
-    totalSakit: sumSakit || 0,
-    totalAlpa: sumAlpa || 0,
+    persentaseTargetLkhTercapai: Math.min(100, Math.max(0, persentaseTargetLkh)),
+    totalHadir: sumHadir,
+    totalTerlambat: sumTerlambat,
+    totalIzinDinas: sumIzin,
+    totalCuti: sumCuti,
+    totalSakit: sumSakit,
+    totalAlpa: sumAlpa,
   };
 
   return {
@@ -365,6 +379,10 @@ export async function getRekapStatistikAction(params: {
   kantorId?: string;
 }): Promise<RekapStatistikData> {
   const sessionUser = await requireAuth(["admin", "atasan"]);
-  return await calculateRekapStatistik(params, sessionUser.role, sessionUser.id);
+  return await calculateRekapStatistik(
+    { ...params, orgId: sessionUser.orgId },
+    sessionUser.role,
+    sessionUser.id
+  );
 }
 

@@ -6,6 +6,7 @@ import {
   recordCheckIn,
   recordCheckOut,
   getPresensiHistory,
+  getKehadiranStatusHariIni,
 } from "@/actions/presensi";
 import { CheckInPayload, CheckOutPayload } from "@/types";
 
@@ -28,6 +29,19 @@ export function useRiwayatPresensi(userId?: string, limitDays: number = 7) {
       return await getPresensiHistory(userId, limitDays);
     },
     enabled: Boolean(userId),
+  });
+}
+
+export function useKehadiranStatus(userId?: string, tanggal?: string) {
+  return useQuery({
+    queryKey: ["kehadiran-status", userId, tanggal],
+    queryFn: async () => {
+      if (!userId || !tanggal) return null;
+      return await getKehadiranStatusHariIni(userId, tanggal);
+    },
+    enabled: Boolean(userId && tanggal),
+    // Status kehadiran bisa berubah cepat (misal disetujui atasan), refetch on window focus
+    refetchOnWindowFocus: true,
   });
 }
 

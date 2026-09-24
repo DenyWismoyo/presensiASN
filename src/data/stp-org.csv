@@ -1,0 +1,51 @@
+namaJabatan,level,namaOpd,namaAtasan,klasterStruktur
+Pemimpin BLUD,5,UPTD Kawasan Sains dan Teknologi Solo Technopark,,blud
+Pejabat Keuangan,6,UPTD Kawasan Sains dan Teknologi Solo Technopark,Pemimpin BLUD,blud
+Pejabat Teknis Umum,6,UPTD Kawasan Sains dan Teknologi Solo Technopark,Pemimpin BLUD,blud
+Manager Dukungan Bisnis Pelayanan dan Pengembangan,6,UPTD Kawasan Sains dan Teknologi Solo Technopark,Pemimpin BLUD,blud
+Kepala Divisi Akuntansi,7,UPTD Kawasan Sains dan Teknologi Solo Technopark,Pejabat Keuangan,blud
+Staf Keuangan,8,UPTD Kawasan Sains dan Teknologi Solo Technopark,Kepala Divisi Akuntansi,blud
+Kepala Divisi Anggaran,7,UPTD Kawasan Sains dan Teknologi Solo Technopark,Pejabat Keuangan,blud
+Kepala Divisi Pemasaran dan Marketing,7,UPTD Kawasan Sains dan Teknologi Solo Technopark,Pejabat Keuangan,blud
+Kepala Divisi Administrasi dan Kepegawaian,7,UPTD Kawasan Sains dan Teknologi Solo Technopark,Pejabat Teknis Umum,blud
+Staf Kesekretariatan,8,UPTD Kawasan Sains dan Teknologi Solo Technopark,Kepala Divisi Administrasi dan Kepegawaian,blud
+Kepala Divisi Logistik,7,UPTD Kawasan Sains dan Teknologi Solo Technopark,Pejabat Teknis Umum,blud
+Driver,8,UPTD Kawasan Sains dan Teknologi Solo Technopark,Kepala Divisi Logistik,blud
+Kepala Divisi Information Technology,7,UPTD Kawasan Sains dan Teknologi Solo Technopark,Pejabat Teknis Umum,blud
+Staf Information Technology,8,UPTD Kawasan Sains dan Teknologi Solo Technopark,Kepala Divisi Information Technology,blud
+Kepala Divisi Pemberdayaan Kawasan,7,UPTD Kawasan Sains dan Teknologi Solo Technopark,Pejabat Teknis Umum,blud
+Kepala Divisi Public Relation,7,UPTD Kawasan Sains dan Teknologi Solo Technopark,Pejabat Teknis Umum,blud
+Staf Pemberdayaan Kawasan 1,8,UPTD Kawasan Sains dan Teknologi Solo Technopark,Kepala Divisi Pemberdayaan Kawasan,blud
+Marketing Pemberdayaan Kawasan,8,UPTD Kawasan Sains dan Teknologi Solo Technopark,Kepala Divisi Pemberdayaan Kawasan,blud
+Staff Maintenance 1,8,UPTD Kawasan Sains dan Teknologi Solo Technopark,Kepala Divisi Pemberdayaan Kawasan,blud
+Staff Maintenance 2,8,UPTD Kawasan Sains dan Teknologi Solo Technopark,Kepala Divisi Pemberdayaan Kawasan,blud
+Staff Maintenance 3,8,UPTD Kawasan Sains dan Teknologi Solo Technopark,Kepala Divisi Pemberdayaan Kawasan,blud
+House Keeping,8,UPTD Kawasan Sains dan Teknologi Solo Technopark,Kepala Divisi Pemberdayaan Kawasan,blud
+Kepala Divisi Kerjasama dan Hukum,7,UPTD Kawasan Sains dan Teknologi Solo Technopark,Manager Dukungan Bisnis Pelayanan dan Pengembangan,blud
+Staf Divisi Kerjasama dan Hukum 1,8,UPTD Kawasan Sains dan Teknologi Solo Technopark,Kepala Divisi Kerjasama dan Hukum,blud
+Staf Divisi Kerjasama dan Hukum 2,8,UPTD Kawasan Sains dan Teknologi Solo Technopark,Kepala Divisi Kerjasama dan Hukum,blud
+Marketing Officer,8,UPTD Kawasan Sains dan Teknologi Solo Technopark,Kepala Divisi Kerjasama dan Hukum,blud
+Kepala Divisi Riset dan Inkubator,7,UPTD Kawasan Sains dan Teknologi Solo Technopark,Manager Dukungan Bisnis Pelayanan dan Pengembangan,blud
+Staf Riset dan Inkubator 1,8,UPTD Kawasan Sains dan Teknologi Solo Technopark,Kepala Divisi Riset dan Inkubator,blud
+Staf Riset dan Inkubator 2,8,UPTD Kawasan Sains dan Teknologi Solo Technopark,Kepala Divisi Riset dan Inkubator,blud
+Kepala Divisi Sentra Fasilitas HAKI,7,UPTD Kawasan Sains dan Teknologi Solo Technopark,Manager Dukungan Bisnis Pelayanan dan Pengembangan,blud
+Kepala Divisi Diklat,7,UPTD Kawasan Sains dan Teknologi Solo Technopark,Manager Dukungan Bisnis Pelayanan dan Pengembangan,blud
+Kepala Divisi Welding Edukasi,7,UPTD Kawasan Sains dan Teknologi Solo Technopark,Kepala Divisi Diklat,blud
+Toolman dan Expedisi,8,UPTD Kawasan Sains dan Teknologi Solo Technopark,Kepala Divisi Diklat,blud
+Operator Welding,8,UPTD Kawasan Sains dan Teknologi Solo Technopark,Kepala Divisi Diklat,blud
+Marketing Diklat,8,UPTD Kawasan Sains dan Teknologi Solo Technopark,Kepala Divisi Diklat,blud
+Support OGSCI,8,UPTD Kawasan Sains dan Teknologi Solo Technopark,Kepala Divisi Diklat,blud
+Instruktur Welding,8,UPTD Kawasan Sains dan Teknologi Solo Technopark,Kepala Divisi Diklat,blud
+Instruktur Milling,8,UPTD Kawasan Sains dan Teknologi Solo Technopark,Kepala Divisi Diklat,blud
+Instruktur Grinding,8,UPTD Kawasan Sains dan Teknologi Solo Technopark,Kepala Divisi Diklat,blud
+Instruktur Bubut,8,UPTD Kawasan Sains dan Teknologi Solo Technopark,Kepala Divisi Diklat,blud
+Instruktur Kerja Bangku,8,UPTD Kawasan Sains dan Teknologi Solo Technopark,Kepala Divisi Diklat,blud
+Instruktur Cadcam/ Gambar Teknik,8,UPTD Kawasan Sains dan Teknologi Solo Technopark,Kepala Divisi Diklat,blud
+Kepala Divisi Produksi Dan Pemasaran,7,UPTD Kawasan Sains dan Teknologi Solo Technopark,Manager Dukungan Bisnis Pelayanan dan Pengembangan,blud
+Operator Manual,8,UPTD Kawasan Sains dan Teknologi Solo Technopark,Kepala Divisi Produksi Dan Pemasaran,blud
+Programer CNC Bubut,8,UPTD Kawasan Sains dan Teknologi Solo Technopark,Kepala Divisi Produksi Dan Pemasaran,blud
+Programer CNC Milling 1,8,UPTD Kawasan Sains dan Teknologi Solo Technopark,Kepala Divisi Produksi Dan Pemasaran,blud
+Programer CNC Milling 2,8,UPTD Kawasan Sains dan Teknologi Solo Technopark,Kepala Divisi Produksi Dan Pemasaran,blud
+Operator CNC Milling,8,UPTD Kawasan Sains dan Teknologi Solo Technopark,Kepala Divisi Produksi Dan Pemasaran,blud
+Staff Admin Produksi,8,UPTD Kawasan Sains dan Teknologi Solo Technopark,Kepala Divisi Produksi Dan Pemasaran,blud
+Admin BLUD Solo Technopark,6,UPTD Kawasan Sains dan Teknologi Solo Technopark,Pemimpin BLUD,blud

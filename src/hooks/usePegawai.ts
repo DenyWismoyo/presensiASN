@@ -13,7 +13,7 @@ import { UserProfile } from "@/types";
 
 export function usePegawaiList(filters?: PegawaiFilter) {
   return useQuery({
-    queryKey: ["pegawai-list", filters?.kantorId, filters?.role, filters?.search],
+    queryKey: ["pegawai-list", filters?.kantorId, filters?.role, filters?.search, filters?.departmentName],
     queryFn: async () => {
       return await getPegawaiList(filters);
     },

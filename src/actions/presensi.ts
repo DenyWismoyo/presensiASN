@@ -8,18 +8,24 @@ import {
   PresensiStatus,
   CheckInPayload,
   CheckOutPayload,
+  PengajuanIzinItem,
+  LemburRecord,
 } from "@/types";
+import { getIzinList } from "@/actions/izin";
+import { getLemburByDate } from "@/actions/lembur";
 import {
   verifyGeofenceServerSide,
   getAuditMetadataFromHeaders,
   checkImpossibleTravel,
 } from "@/lib/anti-fraud/server";
+import { CheckInSchema, CheckOutSchema } from "@/lib/validations";
+import { recordAuditLog } from "@/actions/audit";
 
-// Jam masuk maksimal resmi ASN (07:30 WIB)
-const JAM_MASUK_MAKSIMAL = process.env.NEXT_PUBLIC_JAM_MASUK_MAKSIMAL || "07:30";
+// Default fallback jika tidak ada di env atau konfigurasi kantor
+const DEFAULT_JAM_MASUK = process.env.NEXT_PUBLIC_JAM_MASUK_MAKSIMAL || "07:30";
 
-function generateDocId(userId: string, tanggal: string): string {
-  return `${userId}_${tanggal}`;
+function generateDocId(userId: string, tanggal: string, shiftId?: string): string {
+  return shiftId ? `${userId}_${tanggal}_${shiftId}` : `${userId}_${tanggal}`;
 }
 
 /**
@@ -27,9 +33,11 @@ function generateDocId(userId: string, tanggal: string): string {
  */
 export async function getPresensiToday(
   userId: string,
-  tanggal: string
+  tanggal: string,
+  shiftId?: string
 ): Promise<PresensiRecord | null> {
-  const docId = generateDocId(userId, tanggal);
+  await requireAuth();
+  const docId = generateDocId(userId, tanggal, shiftId);
 
   if (isFirebaseAdminConfigured()) {
     try {
@@ -62,12 +70,72 @@ export async function getPresensiToday(
 }
 
 /**
+ * Mengambil status kehadiran gabungan hari ini (Presensi, Izin, Lembur)
+ */
+export async function getKehadiranStatusHariIni(
+  userId: string,
+  tanggal: string
+): Promise<{
+  presensi: PresensiRecord | null;
+  izinAktif: PengajuanIzinItem | null;
+  lemburAktif: LemburRecord | null;
+  isHariLibur: boolean;
+  statusKehadiran: PresensiStatus | 'belum_absen';
+}> {
+  await requireAuth();
+  const presensi = await getPresensiToday(userId, tanggal);
+  const lemburAktif = await getLemburByDate(userId, tanggal);
+  
+  const izinList = await getIzinList(userId);
+  const izinAktif = izinList.find(izin => 
+    izin.status === "disetujui" && 
+    tanggal >= izin.tanggalMulai && 
+    tanggal <= izin.tanggalSelesai
+  ) || null;
+
+  // Cek hari libur (sementara false, akan diintegrasikan dengan modul kalender libur)
+  const isHariLibur = false;
+  
+  let statusKehadiran: PresensiStatus | 'belum_absen' = 'belum_absen';
+  
+  if (izinAktif) {
+    if (izinAktif.jenis === 'Sakit') statusKehadiran = 'sakit';
+    else if (izinAktif.jenis === 'Dinas Luar') statusKehadiran = 'dinas';
+    else if (izinAktif.jenis === 'Cuti Tahunan') statusKehadiran = 'cuti';
+    else statusKehadiran = 'izin';
+  } else if (presensi?.checkIn) {
+    statusKehadiran = 'hadir';
+  } else if (isHariLibur) {
+    statusKehadiran = 'libur';
+  } else if (lemburAktif?.status === 'disetujui' && lemburAktif.jenis !== 'hari_kerja') {
+    statusKehadiran = 'lembur';
+  }
+
+  return {
+    presensi,
+    izinAktif,
+    lemburAktif,
+    isHariLibur,
+    statusKehadiran
+  };
+}
+
+/**
  * Mencatat Check-In ASN (Satelit GPS + Swafoto).
  * Validasi bahwa user yang login adalah user yang melakukan check-in.
  */
 export async function recordCheckIn(
   payload: CheckInPayload
 ): Promise<{ success: boolean; data?: PresensiRecord; message?: string }> {
+  // Validasi Zod
+  const validationResult = CheckInSchema.safeParse(payload);
+  if (!validationResult.success) {
+    return {
+      success: false,
+      message: "Validasi data gagal: " + validationResult.error.issues.map(e => e.message).join(", "),
+    };
+  }
+
   // Validasi sesi — hanya user yang login yang bisa check-in untuk dirinya sendiri
   const sessionUser = await requireAuth();
   if (sessionUser.id !== payload.userId) {
@@ -87,16 +155,31 @@ export async function recordCheckIn(
   }
 
   const {
-    userId, nip, nama, orgId, tanggal,
+    userId, nip, nama, orgId, tanggal, shiftId,
     kantorId, namaKantor, jarakMeter,
     koordinat, fotoUrl, alamat, catatan,
   } = payload;
-  const docId = generateDocId(userId, tanggal);
-  const existing = await getPresensiToday(userId, tanggal);
+  const docId = generateDocId(userId, tanggal, shiftId);
+  const existing = await getPresensiToday(userId, tanggal, shiftId);
   if (existing?.checkIn) {
     return {
       success: false,
       message: "Anda sudah melakukan Check-In untuk hari ini.",
+    };
+  }
+
+  // Cross-Check Izin Aktif (Rule 7)
+  const izinList = await getIzinList(userId);
+  const activeIzin = izinList.find(izin => 
+    izin.status === "disetujui" && 
+    tanggal >= izin.tanggalMulai && 
+    tanggal <= izin.tanggalSelesai
+  );
+
+  if (activeIzin) {
+    return {
+      success: false,
+      message: `Anda sedang dalam masa ${activeIzin.jenis} yang disetujui (hingga ${activeIzin.tanggalSelesai}). Check-In dibatalkan.`,
     };
   }
 
@@ -114,7 +197,8 @@ export async function recordCheckIn(
   const now = new Date();
 
   // Evaluasi jam kedatangan vs jam maksimal
-  const [maxHour, maxMinute] = JAM_MASUK_MAKSIMAL.split(":").map(Number);
+  const maxTime = geofence.office?.jamMasukMaksimal || DEFAULT_JAM_MASUK;
+  const [maxHour, maxMinute] = maxTime.split(":").map(Number);
   const nowHour = now.getHours();
   const nowMinute = now.getMinutes();
   const isLate = nowHour > maxHour || (nowHour === maxHour && nowMinute > maxMinute);
@@ -129,6 +213,7 @@ export async function recordCheckIn(
     nama,
     orgId,
     tanggal,
+    shiftId,
     kantorId: geofence.office.id,
     namaKantor: resolvedKantorNama,
     status,
@@ -163,6 +248,16 @@ export async function recordCheckIn(
     getDevPresensiStore().set(docId, newRecord);
   }
 
+  // Rekam Audit Log
+  await recordAuditLog({
+    action: "CREATE",
+    entityType: "PRESENSI",
+    entityId: docId,
+    details: `Check-In presensi ${status} di ${resolvedKantorNama}`,
+    ipAddress,
+    userAgent
+  });
+
   return { success: true, data: newRecord };
 }
 
@@ -172,6 +267,15 @@ export async function recordCheckIn(
 export async function recordCheckOut(
   payload: CheckOutPayload
 ): Promise<{ success: boolean; data?: PresensiRecord; message?: string }> {
+  // Validasi Zod
+  const validationResult = CheckOutSchema.safeParse(payload);
+  if (!validationResult.success) {
+    return {
+      success: false,
+      message: "Validasi data gagal: " + validationResult.error.issues.map(e => e.message).join(", "),
+    };
+  }
+
   // Validasi sesi
   const sessionUser = await requireAuth();
   if (sessionUser.id !== payload.userId) {
@@ -189,12 +293,12 @@ export async function recordCheckOut(
     };
   }
 
-  const { userId, tanggal, koordinat, fotoUrl, catatan, jarakMeter, namaKantor, kantorId, alamat } = payload;
-  const docId = generateDocId(userId, tanggal);
+  const { userId, tanggal, shiftId, koordinat, fotoUrl, catatan, jarakMeter, namaKantor, kantorId, alamat } = payload;
+  const docId = generateDocId(userId, tanggal, shiftId);
   const now = new Date();
 
   // Ambil record yang sudah ada dari Firestore
-  const existing = await getPresensiToday(userId, tanggal);
+  const existing = await getPresensiToday(userId, tanggal, shiftId);
   if (!existing) {
     return {
       success: false,
@@ -206,6 +310,14 @@ export async function recordCheckOut(
     return {
       success: false,
       message: "Anda sudah melakukan Check-Out untuk hari ini.",
+    };
+  }
+
+  // Aturan Anti-Fraud: DILARANG REUSE FOTO (Rule 1)
+  if (existing.checkIn?.fotoUrl && fotoUrl === existing.checkIn.fotoUrl) {
+    return {
+      success: false,
+      message: "FRAUD_ALERT: DILARANG REUSE FOTO. Foto Check-Out harus menggunakan jepretan kamera yang baru, tidak boleh menggunakan foto Check-In.",
     };
   }
 
@@ -223,7 +335,19 @@ export async function recordCheckOut(
     };
   }
 
-  // 3. Deteksi Impossible Travel
+  // 3. Validasi Jam Pulang Minimal
+  const minTime = geofence.office?.jamPulangMinimal || "16:00";
+  const [minHour, minMinute] = minTime.split(":").map(Number);
+  const nowHour = now.getHours();
+  const nowMinute = now.getMinutes();
+  if (nowHour < minHour || (nowHour === minHour && nowMinute < minMinute)) {
+    return {
+      success: false,
+      message: `Belum waktunya pulang. Jam pulang minimal untuk ${geofence.office?.namaKantor || 'kantor Anda'} adalah ${minTime} WIB.`,
+    };
+  }
+
+  // 4. Deteksi Impossible Travel
   const travelCheck = checkImpossibleTravel(existing.checkIn, koordinat, now);
 
   // 4. Jejak Audit Jaringan
@@ -278,6 +402,16 @@ export async function recordCheckOut(
     getDevPresensiStore().set(docId, updatedRecord);
   }
 
+  // Rekam Audit Log
+  await recordAuditLog({
+    action: "UPDATE",
+    entityType: "PRESENSI",
+    entityId: docId,
+    details: `Check-Out presensi durasi ${durasiKerjaMenit} menit`,
+    ipAddress,
+    userAgent
+  });
+
   return { success: true, data: updatedRecord };
 }
 
@@ -288,11 +422,14 @@ export async function getPresensiHistory(
   userId: string,
   limitDays: number = 7
 ): Promise<PresensiRecord[]> {
+  const sessionUser = await requireAuth();
+
   if (isFirebaseAdminConfigured()) {
     try {
       const snap = await adminDb
         .collection("presensi")
         .where("userId", "==", userId)
+        .where("orgId", "==", sessionUser.orgId)
         .orderBy("tanggal", "desc")
         .limit(limitDays)
         .get();
@@ -309,7 +446,7 @@ export async function getPresensiHistory(
   if (process.env.NODE_ENV === "development") {
     const list = Array.from(getDevPresensiStore().values());
     const filtered = list
-      .filter((d) => d.userId === userId || userId === SEED_FIREBASE_UIDS.pegawai)
+      .filter((d) => (d.userId === userId || userId === SEED_FIREBASE_UIDS.pegawai) && d.orgId === sessionUser.orgId)
       .sort((a, b) => b.tanggal.localeCompare(a.tanggal));
     return filtered.slice(0, limitDays);
   }

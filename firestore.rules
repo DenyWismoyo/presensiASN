@@ -32,64 +32,70 @@ service cloud.firestore {
       return isAuthenticated() && (request.auth.token.role in ['admin', 'atasan'] || getUserRole() in ['admin', 'atasan']);
     }
 
+    // Helper: Validasi Isolasi Multi-Tenant (White-Label)
+    function isSameOrg(data) {
+      // Pastikan data memiliki orgId dan sesuai dengan orgId pengguna yang login
+      return isAuthenticated() && data.orgId == getUserData().orgId;
+    }
+
+    // 0. Koleksi Organizations (organizations)
+    match /organizations/{orgId} {
+      allow read: if isAuthenticated() && getUserData().orgId == orgId;
+      allow write: if isAdmin() && getUserData().orgId == orgId;
+    }
+
     // 1. Koleksi Pengguna (users)
     match /users/{userId} {
-      // Seluruh ASN yang login dapat membaca profil rekan kerja (nama, NIP, kantor)
-      allow read: if isAuthenticated();
+      // Seluruh ASN yang login dapat membaca profil rekan kerja di satu organisasi
+      allow read: if isAuthenticated() && isSameOrg(resource.data);
       
-      // Pembuatan profil: Admin, atau saat inisialisasi akun sendiri
-      allow create: if isAdmin() || isOwner(userId);
+      // Pembuatan profil: Admin satu organisasi
+      allow create: if isSameOrg(request.resource.data) && (isAdmin() || isOwner(userId));
       
-      // Pembaruan: Admin bebas mengubah seluruh field; Pegawai dilarang mengubah role, NIP, kantorId, atau kuota storage
-      allow update: if isAdmin() || (
-        isOwner(userId) && 
-        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'nip', 'kantorId', 'storageLimitBytes'])
+      // Pembaruan: Admin bebas, pegawai dibatasi field
+      allow update: if isSameOrg(resource.data) && isSameOrg(request.resource.data) && (
+        isAdmin() || (
+          isOwner(userId) && 
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'nip', 'kantorId', 'storageLimitBytes', 'orgId'])
+        )
       );
       
-      // Hapus profil: Hanya admin BKPSDM
-      allow delete: if isAdmin();
+      // Hapus profil: Hanya admin BKPSDM organisasi yang sama
+      allow delete: if isAdmin() && isSameOrg(resource.data);
     }
 
     // 2. Koleksi Presensi (presensi)
     match /presensi/{presensiId} {
-      // Pemilik, atasan, atau admin dapat membaca riwayat presensi
-      allow read: if isAuthenticated() && (
+      // Pemilik, atasan, atau admin satu org dapat membaca riwayat presensi
+      allow read: if isSameOrg(resource.data) && (
         resource.data.userId == request.auth.uid || isAtasan()
       );
       
-      // Check-in baru: Wajib atas nama akun sendiri (atau admin)
-      allow create: if isAuthenticated() && (
+      allow create: if isSameOrg(request.resource.data) && (
         request.resource.data.userId == request.auth.uid || isAdmin()
       );
       
-      // Check-out / Update: Pemilik akun sendiri atau admin
-      allow update: if isAuthenticated() && (
+      allow update: if isSameOrg(resource.data) && isSameOrg(request.resource.data) && (
         isAdmin() || (
           resource.data.userId == request.auth.uid &&
           request.resource.data.userId == request.auth.uid
         )
       );
       
-      // Hapus catatan presensi: Hanya admin
-      allow delete: if isAdmin();
+      allow delete: if isAdmin() && isSameOrg(resource.data);
     }
 
     // 3. Koleksi Laporan Kegiatan Harian (lkh)
     match /lkh/{lkhId} {
-      // Pemilik, atasan penilai, atau admin dapat membaca berkas LKH
-      allow read: if isAuthenticated() && (
+      allow read: if isSameOrg(resource.data) && (
         resource.data.userId == request.auth.uid || isAtasan()
       );
       
-      // Pembuatan laporan: Wajib atas nama user sendiri
-      allow create: if isAuthenticated() && (
+      allow create: if isSameOrg(request.resource.data) && (
         request.resource.data.userId == request.auth.uid || isAdmin()
       );
       
-      // Update LKH:
-      // - Pegawai mengedit laporan miliknya
-      // - Atasan/Admin memberikan persetujuan / revisi
-      allow update: if isAuthenticated() && (
+      allow update: if isSameOrg(resource.data) && isSameOrg(request.resource.data) && (
         isAdmin() || 
         isAtasan() || (
           resource.data.userId == request.auth.uid &&
@@ -97,8 +103,7 @@ service cloud.firestore {
         )
       );
       
-      // Hapus laporan: Pemilik hanya boleh menghapus saat status masih 'draft', atau admin
-      allow delete: if isAuthenticated() && (
+      allow delete: if isSameOrg(resource.data) && (
         isAdmin() || (
           resource.data.userId == request.auth.uid &&
           resource.data.status == 'draft'
@@ -108,33 +113,54 @@ service cloud.firestore {
 
     // 4. Koleksi Pengajuan Izin & Cuti (izin)
     match /izin/{izinId} {
-      allow read: if isAuthenticated() && (
+      allow read: if isSameOrg(resource.data) && (
         resource.data.userId == request.auth.uid || isAtasan()
       );
       
-      allow create: if isAuthenticated() && (
+      allow create: if isSameOrg(request.resource.data) && (
         request.resource.data.userId == request.auth.uid || isAdmin()
       );
       
-      // Approval izin: Hanya atasan atau admin
-      allow update: if isAtasan();
+      allow update: if isSameOrg(resource.data) && isSameOrg(request.resource.data) && isAtasan();
       
-      // Pembatalan izin: Pemilik hanya saat masih 'pending'
-      allow delete: if isAuthenticated() && (
+      allow delete: if isSameOrg(resource.data) && (
         isAdmin() || (
           resource.data.userId == request.auth.uid &&
-          resource.data.status == 'pending'
+          resource.data.status == 'menunggu'
         )
       );
     }
 
     // 5. Koleksi Titik Kantor & Geofencing (kantor)
     match /kantor/{kantorId} {
-      // Seluruh ASN dapat membaca titik koordinat & radius kantor untuk keperluan radar presensi
-      allow read: if isAuthenticated();
+      allow read: if isSameOrg(resource.data);
+      allow write: if isSameOrg(request.resource.data) && isAdmin();
+    }
+
+    // 6. Koleksi Lembur / Overtime (lemburRecords)
+    match /lemburRecords/{lemburId} {
+      allow read: if isSameOrg(resource.data) && (
+        resource.data.userId == request.auth.uid || isAtasan()
+      );
       
-      // Hanya admin BKPSDM yang berhak mengubah koordinat atau radius kantor
-      allow write: if isAdmin();
+      allow create: if isSameOrg(request.resource.data) && (
+        request.resource.data.userId == request.auth.uid || isAdmin()
+      );
+      
+      allow update: if isSameOrg(resource.data) && isSameOrg(request.resource.data) && (
+        isAdmin() ||
+        isAtasan() || (
+          resource.data.userId == request.auth.uid &&
+          resource.data.status in ['disetujui', 'selesai']
+        )
+      );
+      
+      allow delete: if isSameOrg(resource.data) && (
+        isAdmin() || (
+          resource.data.userId == request.auth.uid &&
+          resource.data.status == 'draft'
+        )
+      );
     }
   }
 }

@@ -1,29 +1,76 @@
 "use server";
 
-import { adminDb } from "@/lib/firebase/admin";
+import { adminDb, isFirebaseAdminConfigured } from "@/lib/firebase/admin";
 import { requireAuth } from "@/lib/firebase/session";
 import { KantorUnit } from "@/types";
 import { DEFAULT_KANTOR_LIST } from "@/data/masterKantor";
+
+const globalAny = global as any;
+const devKantorStore: Map<string, KantorUnit> = globalAny.devKantorStore || new Map(DEFAULT_KANTOR_LIST.map((k: KantorUnit) => [k.id, k]));
+if (process.env.NODE_ENV !== "production") {
+  globalAny.devKantorStore = devKantorStore;
+}
 
 /**
  * Mengambil daftar seluruh kantor terdaftar dari Firestore.
  * Jika Firestore kosong (bukan error), fallback ke DEFAULT_KANTOR_LIST.
  */
 export async function getKantorList(orgId?: string): Promise<KantorUnit[]> {
-  let query = adminDb.collection("kantor").where("isActive", "==", true);
-  if (orgId) {
-    query = query.where("orgId", "==", orgId);
-  }
-  const snap = await query.get();
+  const sessionUser = await requireAuth();
+  const targetOrgId = orgId || sessionUser.orgId;
 
-  if (!snap.empty) {
-    return snap.docs.map((doc) => doc.data() as KantorUnit);
-  }
+  try {
+    let query = adminDb.collection("kantor").where("isActive", "==", true);
+    query = query.where("orgId", "==", targetOrgId);
+    const snap = await query.get();
 
-  // Jika Firestore kosong (belum ada seed), fallback ke data default lokal
-  // Ini BUKAN fallback error — Firestore kosong valid jika belum ada seed
-  console.info("[Server Action Kantor] Koleksi kantor kosong, menggunakan DEFAULT_KANTOR_LIST.");
-  return DEFAULT_KANTOR_LIST;
+    if (!snap.empty) {
+      return snap.docs.map((doc) => {
+        const d = doc.data() as any;
+        const lat =
+          d.koordinat?.lat ??
+          d.koordinat?.latitude ??
+          d.koordinat?._latitude ??
+          d.lat ??
+          d.latitude ??
+          -7.558392;
+        const lng =
+          d.koordinat?.lng ??
+          d.koordinat?.longitude ??
+          d.koordinat?._longitude ??
+          d.lng ??
+          d.longitude ??
+          110.857528;
+
+        return {
+          id: doc.id,
+          kodeKantor: d.kodeKantor || "KTR",
+          namaKantor: d.namaKantor || "Kantor ASN",
+          kategori: d.kategori || "OPD / Dinas",
+          alamat: d.alamat || "",
+          koordinat: {
+            lat: typeof lat === "number" ? lat : parseFloat(lat) || -7.558392,
+            lng: typeof lng === "number" ? lng : parseFloat(lng) || 110.857528,
+          },
+          radiusMeter: typeof d.radiusMeter === "number" ? d.radiusMeter : 150,
+          jamMasukMaksimal: d.jamMasukMaksimal || "07:30",
+          jamPulangMinimal: d.jamPulangMinimal || "16:00",
+          orgId: d.orgId || "org-surakarta",
+          isActive: d.isActive !== false,
+        } as KantorUnit;
+      });
+    }
+
+    // Jika Firestore kosong, kembalikan array kosong (tanpa mock)
+    console.info("[Server Action Kantor] Koleksi kantor kosong di Firestore.");
+    return [];
+  } catch (error) {
+    console.warn("[Server Action Kantor] Gagal mengambil kantor dari Firestore:", error);
+    if (process.env.NODE_ENV === "development") {
+      return Array.from(devKantorStore.values()).filter((k) => k.orgId === targetOrgId);
+    }
+    return [];
+  }
 }
 
 /**
@@ -36,7 +83,18 @@ export async function saveKantor(
   // Validasi sesi — hanya admin
   await requireAuth(["admin"]);
 
-  await adminDb.collection("kantor").doc(kantor.id).set(kantor, { merge: true });
+  if (isFirebaseAdminConfigured()) {
+    try {
+      await adminDb.collection("kantor").doc(kantor.id).set(kantor, { merge: true });
+    } catch (err) {
+      console.warn("[Kantor] Gagal menyimpan ke Firestore:", err);
+    }
+  }
+
+  if (process.env.NODE_ENV === "development") {
+    devKantorStore.set(kantor.id, kantor);
+  }
+
   return { success: true, data: kantor, message: "Data kantor berhasil disimpan." };
 }
 
@@ -50,6 +108,17 @@ export async function deleteKantor(
   // Validasi sesi — hanya admin
   await requireAuth(["admin"]);
 
-  await adminDb.collection("kantor").doc(kantorId).delete();
+  if (isFirebaseAdminConfigured()) {
+    try {
+      await adminDb.collection("kantor").doc(kantorId).delete();
+    } catch (err) {
+      console.warn("[Kantor] Gagal menghapus dari Firestore:", err);
+    }
+  }
+
+  if (process.env.NODE_ENV === "development") {
+    devKantorStore.delete(kantorId);
+  }
+
   return { success: true, message: "Kantor berhasil dihapus." };
 }

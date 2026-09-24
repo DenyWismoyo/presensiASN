@@ -90,14 +90,14 @@ export default function LoginPage() {
           <div>
             <div className="flex items-center gap-2">
               <span className="font-bold text-base sm:text-lg tracking-tight text-white">
-                SI-PRESENSI & LKH
+                TECHNO SIGN
               </span>
               <Badge variant="default" className="bg-emerald-500/20 text-emerald-300 border-emerald-500/30 text-[9px] sm:text-[10px] px-1.5 py-0.2">
-                ASN PRO
+                PRO
               </Badge>
             </div>
             <p className="text-[11px] sm:text-xs text-slate-400">
-              Pemerintah Republik Indonesia • BKPSDM
+              UPTD KST Solo Technopark
             </p>
           </div>
         </div>
@@ -120,7 +120,7 @@ export default function LoginPage() {
         <div className="hidden lg:block flex-1 max-w-xl text-left space-y-6">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-medium">
             <Sparkles className="w-3.5 h-3.5" />
-            Platform Terpadu Akuntabilitas Kinerja ASN
+            Platform Terpadu Akuntabilitas Kinerja
           </div>
           <h1 className="text-4xl lg:text-5xl font-extrabold tracking-tight text-white leading-tight">
             Presensi Digital & Laporan Kegiatan{" "}
@@ -156,7 +156,7 @@ export default function LoginPage() {
         <div className="lg:hidden text-center space-y-1 mb-2">
           <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-[11px] font-medium">
             <Sparkles className="w-3 h-3" />
-            Portal Absensi & Kinerja ASN
+            Portal Absensi & Kinerja
           </div>
           <h2 className="text-xl font-bold text-white tracking-tight">
             Presensi GPS & LKH Harian
@@ -169,7 +169,7 @@ export default function LoginPage() {
             <CardHeader className="space-y-1 pb-4">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-xl font-bold text-white">
-                  Masuk Portal ASN
+                  Masuk Portal Techno Sign
                 </CardTitle>
                 <div className="w-7 h-7 rounded-lg bg-emerald-500/10 flex items-center justify-center border border-emerald-500/30">
                   <ShieldCheck className="w-4 h-4 text-emerald-400" />
@@ -190,11 +190,11 @@ export default function LoginPage() {
 
               <form onSubmit={handleManualLogin} className="space-y-3.5">
                 <div className="space-y-1.5">
-                  <Label className="text-xs text-slate-300">NIP / Email Kedinasan</Label>
+                  <Label className="text-xs text-slate-300">NIP / Email / Access Code</Label>
                   <div className="relative">
                     <Input
                       type="text"
-                      placeholder="Contoh: 19920817 201801 1 002"
+                      placeholder="Contoh: STP-001 atau Email"
                       value={nipOrEmail}
                       onChange={(e) => setNipOrEmail(e.target.value)}
                       className="bg-slate-800/80 border-slate-700 text-white placeholder:text-slate-500 focus-visible:ring-emerald-500 text-xs h-10"
@@ -290,7 +290,7 @@ export default function LoginPage() {
 
             <CardFooter className="pt-0 text-center justify-center">
               <p className="text-[10px] text-slate-500">
-                Terproteksi Firebase Auth & Standar Kemanan Data ASN • Versi 1.0.0
+                Terproteksi Firebase Auth & Standar Keamanan Data • Versi 1.0.0
               </p>
             </CardFooter>
           </Card>
@@ -299,7 +299,7 @@ export default function LoginPage() {
 
       {/* Footer */}
       <footer className="relative z-10 py-4 border-t border-slate-800/80 text-center text-xs text-slate-500">
-        © {new Date().getFullYear()} Pemerintah Republik Indonesia. Hak Cipta Dilindungi Undang-Undang.
+        © {new Date().getFullYear()} UPTD KST Solo Technopark. Hak Cipta Dilindungi Undang-Undang.
       </footer>
     </main>
   );

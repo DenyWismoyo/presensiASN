@@ -57,8 +57,11 @@ export async function getCurrentUserFromSession(): Promise<UserProfile | null> {
 
     if (isFirebaseAdminConfigured()) {
       const decodedToken = await adminAuth.verifyIdToken(token, true);
-      const profile = await getUserProfileFromFirestore(decodedToken.uid);
-      return profile;
+      const snap = await import('./admin').then(m => m.adminDb.collection('users').doc(decodedToken.uid).get());
+      if (snap.exists) {
+        return snap.data() as UserProfile;
+      }
+      return null;
     }
 
     // Dev Mode Fallback: Decode payload JWT token Firebase tanpa rahasia Admin SDK
@@ -81,11 +84,6 @@ export async function getCurrentUserFromSession(): Promise<UserProfile | null> {
       } catch (err) {
         console.warn("[Session DEV] Gagal mem-parse token dev:", err);
       }
-    }
-
-    if (process.env.NODE_ENV === "production") {
-      const decodedToken = await adminAuth.verifyIdToken(token, true);
-      return await getUserProfileFromFirestore(decodedToken.uid);
     }
 
     return null;

@@ -14,7 +14,7 @@ import {
 } from "@/data/seedData";
 
 /**
- * Menyuntikkan seluruh data inisialisasi resmi kantor Solo Teknopark & pegawainya ke Firestore / Dev Store.
+ * Menyuntikkan seluruh data inisialisasi resmi kantor pusat & pegawainya ke Firestore / Dev Store.
  * Hanya dapat dijalankan oleh pengguna dengan role 'admin'.
  */
 export async function seedDatabaseAction(): Promise<{ success: boolean; message: string }> {
@@ -40,7 +40,7 @@ export async function seedDatabaseAction(): Promise<{ success: boolean; message:
 
       return {
         success: true,
-        message: "Data master kantor Solo Teknopark dan profil ASN berhasil disinkronkan ke Firestore.",
+        message: "Data master kantor pusat dan profil pegawai berhasil disinkronkan ke Firestore.",
       };
     }
 
@@ -57,7 +57,7 @@ export async function seedDatabaseAction(): Promise<{ success: boolean; message:
 
       return {
         success: true,
-        message: "Mode Development: Data master kantor Solo Teknopark, profil ASN, 30 hari presensi, dan LKH tim berhasil diinisialisasi!",
+        message: "Mode Development: Data master kantor pusat, profil pegawai, 30 hari presensi, dan LKH tim berhasil diinisialisasi!",
       };
     }
 

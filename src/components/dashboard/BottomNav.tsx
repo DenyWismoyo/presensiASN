@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { usePendingLKHList } from "@/hooks/useLKH";
+import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
@@ -13,6 +14,7 @@ import {
   User,
   ShieldCheck,
   CalendarClock,
+  Timer,
 } from "lucide-react";
 
 export default function BottomNav() {
@@ -49,8 +51,8 @@ export default function BottomNav() {
           badgeCount: pendingCount,
         }
       : {
-          name: "Izin / Cuti",
-          href: "/izin",
+          name: "Kalender",
+          href: "/kalender",
           icon: CalendarClock,
         },
     {
@@ -74,7 +76,7 @@ export default function BottomNav() {
   return (
     <nav
       aria-label="Navigasi Bawah Ponsel"
-      className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-white/95 backdrop-blur-xl border-t border-slate-200 shadow-[0_-4px_25px_rgba(0,0,0,0.08)] px-1.5 pt-1.5 pb-safe flex items-center justify-around"
+      className="bottom-nav-glass"
       style={{ paddingBottom: "max(0.5rem, env(safe-area-inset-bottom))" }}
     >
       {navItems.map((item) => {
@@ -89,16 +91,19 @@ export default function BottomNav() {
               onClick={handleNavClick}
               className="flex flex-col items-center -mt-6 group"
             >
-              <div
+              <motion.div
+                whileTap={{ scale: 0.9 }}
+                whileHover={{ scale: 1.05 }}
+                transition={{ type: "spring", stiffness: 400, damping: 20 }}
                 className={cn(
-                  "w-13 h-13 rounded-full flex items-center justify-center shadow-lg transition-transform active:scale-95 border-2",
+                  "w-13 h-13 rounded-full flex items-center justify-center shadow-lg border-2",
                   isActive
                     ? "bg-gradient-to-tr from-emerald-600 to-teal-500 text-white border-white shadow-emerald-600/40 ring-4 ring-emerald-500/25"
                     : "bg-gradient-to-tr from-emerald-600 to-teal-700 text-white border-white shadow-emerald-900/25 hover:from-emerald-700 hover:to-teal-800"
                 )}
               >
-                <Icon className="w-6 h-6 animate-pulse" />
-              </div>
+                <Icon className="w-6 h-6" />
+              </motion.div>
               <span
                 className={cn(
                   "text-[10px] font-bold mt-1 transition-colors tracking-tight",
@@ -117,17 +122,20 @@ export default function BottomNav() {
             href={item.href}
             onClick={handleNavClick}
             className={cn(
-              "flex flex-col items-center justify-center py-1 px-2 rounded-xl transition-all active:scale-95 min-w-[56px] relative",
+              "bottom-nav-item relative",
               isActive
                 ? "text-emerald-600 font-semibold"
                 : "text-slate-400 hover:text-slate-600"
             )}
           >
-            <div className="relative">
+            <motion.div 
+              whileTap={{ scale: 0.88 }}
+              className="relative flex flex-col items-center"
+            >
               <Icon
                 className={cn(
-                  "w-5 h-5 transition-transform",
-                  isActive && "scale-110"
+                  "w-5 h-5 transition-transform duration-200",
+                  isActive && "scale-110 text-emerald-600"
                 )}
               />
               {/* Badge Counter Notifikasi Khusus Menu Approval Atasan */}
@@ -138,9 +146,13 @@ export default function BottomNav() {
               )}
 
               {isActive && (
-                <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-emerald-600" />
+                <motion.span 
+                  layoutId="bottomNavDot"
+                  transition={{ type: "spring", stiffness: 450, damping: 30 }}
+                  className="absolute -bottom-1.5 w-1.5 h-1.5 rounded-full bg-emerald-600" 
+                />
               )}
-            </div>
+            </motion.div>
             <span className="text-[10px] mt-1 tracking-tight truncate max-w-[62px]">
               {item.name}
             </span>

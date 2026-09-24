@@ -50,7 +50,25 @@ export async function verifyGeofenceServerSide(
     try {
       const snap = await adminDb.collection("kantor").doc(kantorId).get();
       if (snap.exists) {
-        targetKantor = snap.data() as KantorUnit;
+        const d = snap.data() as any;
+        const lat =
+          d.koordinat?.lat ??
+          d.koordinat?.latitude ??
+          d.koordinat?._latitude ??
+          d.lat ??
+          d.latitude ??
+          -7.558392;
+        const lng =
+          d.koordinat?.lng ??
+          d.koordinat?.longitude ??
+          d.koordinat?._longitude ??
+          d.lng ??
+          d.longitude ??
+          110.857528;
+        targetKantor = {
+          ...d,
+          koordinat: { lat, lng },
+        } as KantorUnit;
       }
     } catch (err) {
       console.warn("[AntiFraud Server] Gagal mengambil kantor dari Firestore:", err);

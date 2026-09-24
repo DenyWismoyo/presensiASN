@@ -23,7 +23,7 @@ const PROTECTED_ROUTES = [
  */
 const PUBLIC_ROUTES = ["/login"];
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Izinkan route publik

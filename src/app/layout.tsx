@@ -22,14 +22,18 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "Sistem Presensi & LKH Pegawai ASN",
+  title: "Techno Sign - Presensi & Kinerja",
   description:
-    "Sistem Presensi Digital Berbasis Lokasi GPS & Foto Selfie serta Laporan Kegiatan Harian (LKH) Pegawai Aparatur Sipil Negara",
+    "Sistem Presensi Digital Berbasis Lokasi GPS & Foto Selfie serta Laporan Kegiatan Harian (LKH) Karyawan",
   manifest: "/manifest.json",
+  icons: {
+    icon: "/icon.svg",
+    apple: "/icon.svg",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Presensi ASN",
+    title: "Techno Sign",
   },
 };
 
@@ -42,8 +46,12 @@ export default function RootLayout({
     <html
       lang="id"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col bg-slate-50 text-slate-900 selection:bg-emerald-500 selection:text-white">
+      <body
+        className="min-h-full flex flex-col bg-slate-50 text-slate-900 selection:bg-emerald-500 selection:text-white"
+        suppressHydrationWarning
+      >
         <AppProviders>{children}</AppProviders>
       </body>
     </html>

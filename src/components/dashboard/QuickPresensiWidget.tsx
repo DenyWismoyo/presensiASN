@@ -24,6 +24,7 @@ import {
   ShieldCheck,
   Zap,
 } from "lucide-react";
+import { motion } from "framer-motion";
 
 export default function QuickPresensiWidget() {
   const { user } = useAuth();
@@ -35,7 +36,8 @@ export default function QuickPresensiWidget() {
 
   const activeOffices: KantorUnit[] = useMemo(() => {
     if (officeListFromDb && officeListFromDb.length > 0) {
-      return officeListFromDb.filter((k) => k.isActive);
+      const active = officeListFromDb.filter((k) => k && k.isActive !== false);
+      if (active.length > 0) return active;
     }
     return DEFAULT_KANTOR_LIST;
   }, [officeListFromDb]);
@@ -157,7 +159,7 @@ export default function QuickPresensiWidget() {
   };
 
   return (
-    <Card className="overflow-hidden border-slate-200/80 shadow-md bg-white rounded-2xl">
+    <Card className="card-interactive p-0 overflow-hidden">
       {/* Header bar dengan status GPS & live radar */}
       <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-emerald-950 p-4 text-white">
         <div className="flex items-center justify-between gap-2">
@@ -179,16 +181,18 @@ export default function QuickPresensiWidget() {
             </div>
           </div>
 
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={refreshLocation}
-            disabled={isLocating}
-            className="h-7 w-7 p-0 text-slate-300 hover:text-white hover:bg-white/10 rounded-full"
-            title="Segarkan Sinyal GPS"
-          >
-            <RefreshCw className={cn("w-3.5 h-3.5", isLocating && "animate-spin text-emerald-400")} />
-          </Button>
+          <motion.div whileTap={{ scale: 0.8 }} whileHover={{ scale: 1.1 }}>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={refreshLocation}
+              disabled={isLocating}
+              className="h-7 w-7 p-0 text-slate-300 hover:text-white hover:bg-white/10 rounded-full"
+              title="Segarkan Sinyal GPS"
+            >
+              <RefreshCw className={cn("w-3.5 h-3.5", isLocating && "animate-spin text-emerald-400")} />
+            </Button>
+          </motion.div>
         </div>
       </div>
 
@@ -198,22 +202,22 @@ export default function QuickPresensiWidget() {
           {/* Box Jarak & Geofence */}
           <div
             className={cn(
-              "p-3 rounded-xl border flex items-center gap-3 transition-colors",
+              "widget-box",
               isLocating
-                ? "bg-slate-50 border-slate-200"
+                ? "bg-muted text-muted-foreground"
                 : isWithinRadius
-                ? "bg-emerald-50/70 border-emerald-200 text-emerald-900"
-                : "bg-amber-50/70 border-amber-200 text-amber-900"
+                ? "bg-success/10 text-success"
+                : "bg-warning/10 text-warning"
             )}
           >
             <div
               className={cn(
-                "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-xs",
+                "widget-icon-box",
                 isLocating
-                  ? "bg-slate-200 text-slate-600"
+                  ? "bg-muted-foreground/20 text-muted-foreground"
                   : isWithinRadius
-                  ? "bg-emerald-600 text-white"
-                  : "bg-amber-500 text-white"
+                  ? "bg-success text-success-foreground"
+                  : "bg-warning text-warning-foreground"
               )}
             >
               <MapPin className="w-5 h-5" />
@@ -239,15 +243,15 @@ export default function QuickPresensiWidget() {
               </div>
               <div className="text-[10px] font-semibold mt-0.5">
                 {isLocating ? (
-                  <span className="text-slate-400">Menghubungkan satelit...</span>
+                  <span className="text-muted-foreground">Menghubungkan satelit...</span>
                 ) : isWithinRadius ? (
-                  <span className="text-emerald-700 flex items-center gap-1">
-                    <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                  <span className="text-success flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3 text-success" />
                     Dalam Radius Kantor Resmi
                   </span>
                 ) : (
-                  <span className="text-amber-700 flex items-center gap-1">
-                    <AlertTriangle className="w-3 h-3 text-amber-600" />
+                  <span className="text-warning flex items-center gap-1">
+                    <AlertTriangle className="w-3 h-3 text-warning" />
                     Di Luar Radius Kantor
                   </span>
                 )}
@@ -255,15 +259,15 @@ export default function QuickPresensiWidget() {
             </div>
           </div>
 
-          {/* Box Jadwal & Waktu ASN */}
-          <div className="p-3 rounded-xl border border-slate-200/80 bg-slate-50/70 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-slate-800 text-white flex items-center justify-center shrink-0 shadow-xs">
+          {/* Box Jadwal & Waktu */}
+          <div className="widget-box bg-muted/50">
+            <div className="widget-icon-box bg-foreground text-background">
               <Clock className="w-5 h-5" />
             </div>
 
             <div className="min-w-0 flex-1">
               <div className="text-[10px] uppercase font-bold tracking-wider text-slate-500">
-                Jam Kerja ASN Hari Ini
+                Jam Kerja Pegawai Hari Ini
               </div>
               <div className="text-xs font-semibold text-slate-800 flex items-center gap-2">
                 <span>07:30 - 16:00 WIB</span>
@@ -319,51 +323,55 @@ export default function QuickPresensiWidget() {
               </div>
 
               <Link href="/presensi" onClick={handleWidgetActionClick} className="block w-full">
-                <Button
-                  className={cn(
-                    "w-full h-12 text-sm font-bold shadow-md flex items-center justify-center gap-2 rounded-xl transition-all active:scale-[0.99]",
-                    isAfternoon
-                      ? "bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white ring-2 ring-orange-400/30"
-                      : "bg-slate-800 hover:bg-slate-900 text-white"
-                  )}
-                >
-                  <ClockCheck className="w-5 h-5" />
-                  <span>
-                    {isAfternoon
-                      ? "Ambil Presensi Pulang Sekarang"
-                      : "Presensi Pulang (Dibuka 16:00 WIB)"}
-                  </span>
-                  <ArrowRight className="w-4 h-4 ml-1 opacity-70" />
-                </Button>
+                <motion.div whileTap={{ scale: 0.96 }} whileHover={{ scale: 1.02 }}>
+                  <Button
+                    className={cn(
+                      "btn-base w-full shadow-md",
+                      isAfternoon
+                        ? "bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white ring-2 ring-orange-400/30"
+                        : "bg-foreground hover:bg-foreground/90 text-background"
+                    )}
+                  >
+                    <ClockCheck className="w-5 h-5" />
+                    <span>
+                      {isAfternoon
+                        ? "Ambil Presensi Pulang Sekarang"
+                        : "Presensi Pulang (Dibuka 16:00 WIB)"}
+                    </span>
+                    <ArrowRight className="w-4 h-4 ml-1 opacity-70" />
+                  </Button>
+                </motion.div>
               </Link>
             </div>
           ) : (
             <Link href="/presensi" onClick={handleWidgetActionClick} className="block w-full">
-              <Button
-                className={cn(
-                  "w-full h-13 text-sm font-bold shadow-lg flex items-center justify-center gap-2.5 rounded-xl transition-all active:scale-[0.99]",
-                  isWithinRadius
-                    ? "bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-700 hover:to-teal-800 text-white ring-4 ring-emerald-500/25 animate-pulse"
-                    : "bg-gradient-to-r from-slate-800 to-slate-900 hover:from-slate-900 hover:to-black text-white"
-                )}
-              >
-                <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center">
-                  <ClockCheck className="w-4 h-4 text-white" />
-                </div>
-                <div className="text-left">
-                  <div className="leading-tight">
-                    {isWithinRadius
-                      ? "Ambil Swafoto Presensi Masuk"
-                      : "Menuju Halaman Presensi"}
+              <motion.div whileTap={{ scale: 0.96 }} whileHover={{ scale: 1.02 }}>
+                <Button
+                  className={cn(
+                    "btn-base w-full h-[52px] shadow-lg",
+                    isWithinRadius
+                      ? "bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-700 hover:to-teal-800 text-white ring-4 ring-emerald-500/25 animate-pulse"
+                      : "bg-foreground hover:bg-black text-background"
+                  )}
+                >
+                  <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center">
+                    <ClockCheck className="w-4 h-4 text-white" />
                   </div>
-                  <div className="text-[10px] font-normal text-emerald-100/90 leading-tight">
-                    {isWithinRadius
-                      ? `Terdeteksi dalam radius ${nearestOffice?.namaKantor || "kantor"}`
-                      : "Periksa lokasi dan foto dinas ASN"}
+                  <div className="text-left">
+                    <div className="leading-tight">
+                      {isWithinRadius
+                        ? "Ambil Swafoto Presensi Masuk"
+                        : "Menuju Halaman Presensi"}
+                    </div>
+                    <div className="text-[10px] font-normal text-emerald-100/90 leading-tight">
+                      {isWithinRadius
+                        ? `Terdeteksi dalam radius ${nearestOffice?.namaKantor || "kantor"}`
+                        : "Periksa lokasi dan foto dinas pegawai"}
+                    </div>
                   </div>
-                </div>
-                <ArrowRight className="w-4 h-4 ml-auto opacity-80" />
-              </Button>
+                  <ArrowRight className="w-4 h-4 ml-auto opacity-80" />
+                </Button>
+              </motion.div>
             </Link>
           )}
         </div>

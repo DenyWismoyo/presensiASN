@@ -11,9 +11,13 @@ import {
 } from "@/lib/anti-fraud/client";
 
 interface CameraCaptureProps {
+  mode?: 'check-in' | 'check-out' | 'lembur-in' | 'lembur-out';
   userId: string;
   orgId: string;
   onCapture: (fotoUrl: string, sizeBytes: number) => void;
+  onRetake?: () => void;
+  allowRetake?: boolean;
+  requireFace?: boolean;
   onError?: (message: string) => void;
   capturedUrl?: string | null; // Foto yang sudah diambil sebelumnya
   nip?: string;
@@ -37,9 +41,13 @@ type CameraState =
  * mengambil snapshot dari video stream, lalu mengupload ke Firebase Storage.
  */
 export default function CameraCapture({
+  mode = "check-in",
   userId,
   orgId,
   onCapture,
+  onRetake,
+  allowRetake = true,
+  requireFace = true,
   onError,
   capturedUrl,
   nip,
@@ -51,6 +59,7 @@ export default function CameraCapture({
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const previewContainerRef = useRef<HTMLDivElement>(null);
 
   const [cameraState, setCameraState] = useState<CameraState>(
     capturedUrl ? "captured" : "requesting"
@@ -148,15 +157,37 @@ export default function CameraCapture({
       return;
     }
 
-    // Set canvas size sesuai video
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
+    // Dapatkan aspect ratio kontainer UI agar hasil foto persis seperti yang dilihat pengguna
+    const targetAspect = previewContainerRef.current 
+      ? previewContainerRef.current.clientWidth / previewContainerRef.current.clientHeight 
+      : 3 / 4;
+
+    const videoAspect = video.videoWidth / video.videoHeight;
+    
+    let sourceWidth = video.videoWidth;
+    let sourceHeight = video.videoHeight;
+    let sourceX = 0;
+    let sourceY = 0;
+
+    if (videoAspect > targetAspect) {
+      // Video lebih lebar dari kontainer (crop kiri-kanan)
+      sourceWidth = video.videoHeight * targetAspect;
+      sourceX = (video.videoWidth - sourceWidth) / 2;
+    } else if (videoAspect < targetAspect) {
+      // Video lebih tinggi dari kontainer (crop atas-bawah)
+      sourceHeight = video.videoWidth / targetAspect;
+      sourceY = (video.videoHeight - sourceHeight) / 2;
+    }
+
+    // Set canvas size persis sesuai crop box
+    canvas.width = sourceWidth;
+    canvas.height = sourceHeight;
 
     // Flip horizontal untuk selfie (mirror effect)
     ctx.save();
     ctx.translate(canvas.width, 0);
     ctx.scale(-1, 1);
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    ctx.drawImage(video, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, sourceWidth, sourceHeight);
     ctx.restore();
 
     // 1. Anti-Fraud: Analisis Kecerahan / Lensa Tertutup
@@ -171,16 +202,22 @@ export default function CameraCapture({
 
     // 2. Anti-Fraud: Deteksi Wajah Human Liveness jika didukung browser
     const faceCheck = await detectFaceIfSupported(canvas);
-    if (faceCheck.supported && !faceCheck.hasFace) {
-      console.warn("[AntiFraud Camera] FaceDetector tidak menemukan wajah pada canvas.");
+    if (requireFace && faceCheck.supported && !faceCheck.hasFace) {
+      const msg = "FRAUD_ALERT: Wajah tidak terdeteksi. Harap pastikan wajah Anda terlihat jelas dalam frame kamera.";
+      setErrorMessage(msg);
+      setCameraState("error");
+      onError?.(msg);
+      // Restart camera so they can try again
+      startCamera();
+      return;
     }
 
     // 3. Anti-Fraud: Stempel Forensik Digital Resmi ASN (Watermark Burn-In)
-    if (nip && nama && koordinat) {
+    if (nama && koordinat) {
       stampOfficialWatermark(canvas, {
         nip,
         nama,
-        namaKantor: namaKantor || "Solo Teknopark",
+        namaKantor: namaKantor || "Kantor Pusat",
         koordinat,
         waktu: new Date(),
         accuracyMeter,
@@ -229,33 +266,90 @@ export default function CameraCapture({
     );
   };
 
-  const handleRetake = () => {
-    if (previewUrl && previewUrl.startsWith("blob:")) {
-      URL.revokeObjectURL(previewUrl);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const isDragging = useRef(false);
+  const startX = useRef(0);
+  const [dragX, setDragX] = useState(0);
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    if (cameraState !== "streaming") return;
+    isDragging.current = true;
+    startX.current = e.clientX - dragX;
+    if (e.target instanceof HTMLElement) {
+      e.target.setPointerCapture(e.pointerId);
     }
-    setPreviewUrl(null);
-    setErrorMessage("");
-    startCamera();
   };
 
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!isDragging.current || !containerRef.current) return;
+    const containerRect = containerRef.current.getBoundingClientRect();
+    const knobWidth = 56; // w-14 is 56px
+    const maxDrag = containerRect.width - knobWidth - 8;
+
+    let newX = e.clientX - startX.current;
+    if (newX < 0) newX = 0;
+    if (newX > maxDrag) newX = maxDrag;
+    
+    setDragX(newX);
+
+    if (newX >= maxDrag * 0.95) {
+      isDragging.current = false;
+      setDragX(maxDrag);
+      handleCapture();
+    }
+  };
+
+  const handlePointerUp = (e: React.PointerEvent) => {
+    if (!isDragging.current) return;
+    isDragging.current = false;
+    if (cameraState === "streaming") {
+      setDragX(0);
+    }
+    if (e.target instanceof HTMLElement) {
+      e.target.releasePointerCapture(e.pointerId);
+    }
+  };
+
+  useEffect(() => {
+    if (cameraState === "streaming") {
+      setDragX(0);
+    } else if (cameraState === "captured" || cameraState === "capturing" || cameraState === "uploading") {
+      if (containerRef.current) {
+        const maxDrag = containerRef.current.getBoundingClientRect().width - 56 - 8;
+        if (maxDrag > 0) setDragX(maxDrag);
+      }
+    }
+  }, [cameraState]);
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {/* Canvas tersembunyi untuk capture */}
       <canvas ref={canvasRef} className="hidden" />
 
       {/* Area Kamera / Preview */}
-      <div className="relative aspect-[3/4] sm:aspect-video max-h-[420px] sm:max-h-80 w-full rounded-2xl bg-slate-950 border-2 border-dashed border-slate-700 flex flex-col items-center justify-center overflow-hidden shadow-inner mx-auto">
+      <div 
+        ref={previewContainerRef}
+        className="relative aspect-[3/4] sm:aspect-[4/5] max-h-[500px] w-full rounded-none sm:rounded-3xl bg-slate-900 flex flex-col items-center justify-center overflow-hidden shadow-none sm:shadow-2xl mx-auto border-y sm:border-[6px] sm:border-white/60"
+      >
 
         {/* Video Stream */}
-        {(cameraState === "streaming" || cameraState === "capturing") && (
-          <video
-            ref={videoRef}
-            autoPlay
-            playsInline
-            muted
-            className="w-full h-full object-cover"
-            style={{ transform: "scaleX(-1)" }} // Mirror selfie
-          />
+        {(cameraState === "requesting" || cameraState === "streaming" || cameraState === "capturing") && (
+          <>
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              muted
+              className={`absolute inset-0 w-full h-full object-cover ${cameraState === "requesting" ? "hidden" : ""}`}
+              style={{ transform: "scaleX(-1)" }} // Mirror selfie
+            />
+            {/* Overlay: Face Guide Oval */}
+            {cameraState === "streaming" && (
+              <div className="absolute inset-0 pointer-events-none flex items-center justify-center z-10">
+                <div className="w-[65%] h-[55%] border-2 border-dashed border-white/60 rounded-[100%] shadow-[0_0_0_9999px_rgba(0,0,0,0.35)]" />
+              </div>
+            )}
+          </>
         )}
 
         {/* Preview Foto yang Sudah Diambil */}
@@ -270,23 +364,23 @@ export default function CameraCapture({
 
         {/* Loading: Meminta Izin Kamera */}
         {cameraState === "requesting" && (
-          <div className="text-center p-6 space-y-3">
+          <div className="text-center p-6 space-y-3 z-10">
             <Loader2 className="w-10 h-10 text-emerald-400 animate-spin mx-auto" />
-            <p className="text-sm text-slate-300">Meminta akses kamera...</p>
+            <p className="text-sm text-slate-300 font-medium">Meminta akses kamera...</p>
           </div>
         )}
 
         {/* Error State */}
         {cameraState === "error" && (
-          <div className="text-center p-6 space-y-3 max-w-xs mx-auto">
-            <AlertCircle className="w-12 h-12 text-red-400 mx-auto" />
-            <p className="text-sm font-semibold text-red-300">Kamera Tidak Dapat Diakses</p>
+          <div className="text-center p-6 space-y-3 max-w-xs mx-auto z-10 bg-slate-900/80 backdrop-blur-md rounded-2xl">
+            <AlertCircle className="w-10 h-10 text-rose-400 mx-auto" />
+            <p className="text-sm font-semibold text-rose-300">Akses Ditolak</p>
             <p className="text-xs text-slate-400 leading-relaxed">{errorMessage}</p>
             <Button
               variant="outline"
               size="sm"
               onClick={startCamera}
-              className="border-emerald-500 text-emerald-400 hover:bg-emerald-950"
+              className="border-emerald-500/30 text-emerald-400 hover:bg-emerald-950/50 rounded-full mt-2"
             >
               <RefreshCw className="w-4 h-4 mr-2" />
               Coba Lagi
@@ -296,77 +390,97 @@ export default function CameraCapture({
 
         {/* Overlay: Uploading */}
         {cameraState === "uploading" && (
-          <div className="absolute inset-0 bg-slate-900/70 flex flex-col items-center justify-center gap-3">
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm flex flex-col items-center justify-center gap-3 z-20">
             <Loader2 className="w-10 h-10 text-emerald-400 animate-spin" />
-            <p className="text-sm font-medium text-white">Mengupload foto ke server...</p>
-          </div>
-        )}
-
-        {/* Overlay: Captured sukses */}
-        {cameraState === "captured" && (
-          <div className="absolute top-3 right-3">
-            <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center shadow-lg">
-              <Check className="w-5 h-5 text-white" />
-            </div>
+            <p className="text-sm font-bold text-white tracking-wide">MENGUPLOAD...</p>
           </div>
         )}
 
         {/* Metadata Overlay */}
         {(cameraState === "streaming" || cameraState === "captured") && (
-          <div className="absolute bottom-3 left-3 right-3 p-2.5 rounded-xl bg-slate-900/85 backdrop-blur-md border border-slate-700/60 flex items-center justify-between text-xs text-white">
-            <span className="flex items-center gap-1.5">
-              <Camera className="w-3.5 h-3.5 text-emerald-400" />
-              {cameraState === "captured" ? "Foto terverifikasi" : "Kamera aktif — siap mengambil swafoto"}
-            </span>
-            {cameraState === "captured" && (
-              <span className="text-emerald-300 font-medium">✓ Terupload</span>
-            )}
+          <div className="absolute top-4 left-4 right-4 flex items-center justify-between text-[11px] text-white z-10">
+             <div className="px-3 py-1.5 rounded-full bg-black/30 backdrop-blur-md border border-white/10 shadow-sm flex items-center gap-2">
+               <div className={`w-2 h-2 rounded-full ${cameraState === "streaming" ? "bg-emerald-400 animate-pulse" : "bg-emerald-400"}`} />
+               <span className="font-semibold tracking-wide">
+                 {cameraState === "captured" ? "TERVERIFIKASI" : "KAMERA AKTIF"}
+               </span>
+             </div>
+             {cameraState === "captured" && (
+               <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center shadow-lg border-2 border-emerald-400">
+                 <Check className="w-4 h-4 text-white" />
+               </div>
+             )}
           </div>
         )}
       </div>
 
-      {/* Tombol Aksi */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {cameraState === "captured" ? (
-          <>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleRetake}
-              className="border-slate-300 text-slate-700 hover:bg-slate-50"
-            >
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Ambil Ulang Foto
-            </Button>
-            <Button
-              type="button"
-              disabled
-              className="bg-emerald-600 text-white cursor-default"
-            >
-              <Check className="w-4 h-4 mr-2" />
-              Foto Siap Presensi
-            </Button>
-          </>
-        ) : (
-          <Button
-            type="button"
-            onClick={handleCapture}
-            disabled={cameraState !== "streaming"}
-            className="col-span-full h-12 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+      {/* Swipe Action Button */}
+      <div className="px-4 sm:px-0">
+        {cameraState !== "captured" ? (
+        <div 
+          ref={containerRef}
+          className={`relative w-full h-[68px] rounded-[24px] bg-slate-100 overflow-hidden border-2 border-white shadow-sm select-none ${cameraState !== "streaming" ? 'opacity-70 pointer-events-none' : ''}`}
+          style={{ touchAction: 'none' }}
+        >
+          {/* Background fill */}
+          <div 
+            className="absolute left-0 top-0 bottom-0 bg-gradient-to-r from-emerald-400 to-emerald-500 rounded-[22px]"
+            style={{ 
+              width: `${dragX + 68}px`, // base width matching knob roughly
+              transition: isDragging.current ? 'none' : 'width 0.3s ease' 
+            }}
+          />
+          
+          {/* Text */}
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+            <span className={`font-extrabold text-[12px] tracking-widest transition-colors duration-300 ${(cameraState === "capturing" || cameraState === "uploading") ? 'text-white' : dragX > 40 ? 'text-white/90' : 'text-slate-500'}`}>
+              {cameraState === "capturing" || cameraState === "uploading" ? "MEMPROSES..." : 
+               mode === 'check-out' || mode === 'lembur-out' ? "SWIPE UNTUK PULANG" : 
+               "SWIPE UNTUK FOTO"}
+            </span>
+          </div>
+
+          {/* Knob */}
+          <div 
+            className="absolute left-1.5 top-1.5 bottom-1.5 w-14 rounded-[18px] bg-white shadow-sm flex items-center justify-center cursor-grab active:cursor-grabbing z-20 border border-slate-100"
+            style={{ 
+              transform: `translateX(${dragX}px)`,
+              transition: isDragging.current ? 'none' : 'transform 0.3s ease'
+            }}
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            onPointerCancel={handlePointerUp}
           >
             {cameraState === "capturing" || cameraState === "uploading" ? (
-              <>
-                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                {cameraState === "uploading" ? "Mengupload..." : "Mengambil foto..."}
-              </>
+              <Loader2 className="w-5 h-5 text-emerald-500 animate-spin" />
             ) : (
-              <>
-                <Camera className="w-5 h-5 mr-2" />
-                Ambil Swafoto Presensi
-              </>
+              <Camera className="w-5 h-5 text-slate-700" />
             )}
-          </Button>
-        )}
+          </div>
+        </div>
+      ) : (
+        <div className="w-full flex gap-3">
+          <div className="flex-1 h-[68px] rounded-[24px] bg-emerald-50 border-2 border-emerald-100/50 shadow-sm flex items-center justify-center text-emerald-700">
+            <Check className="w-5 h-5 mr-2" />
+            <span className="font-extrabold text-[12px] tracking-widest">FOTO BERHASIL</span>
+          </div>
+          {allowRetake && onRetake && (
+            <Button
+              variant="outline"
+              className="h-[68px] rounded-[24px] px-6 text-slate-500 border-2 border-slate-200"
+              onClick={() => {
+                setCameraState("requesting");
+                setPreviewUrl(null);
+                onRetake();
+                startCamera();
+              }}
+            >
+              <RefreshCw className="w-5 h-5" />
+            </Button>
+          )}
+        </div>
+      )}
       </div>
     </div>
   );

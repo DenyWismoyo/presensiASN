@@ -1,11 +1,11 @@
 /**
- * Anti-Fraud Suite (Client Side) untuk Presensi ASN
+ * Anti-Fraud Suite (Client Side) untuk Presensi Pegawai
  * Meliputi: Stempel Digital Forensik (Watermark Canvas), Analisis Kecerahan/Lensa Tertutup,
  * Deteksi Wajah Native, dan Integritas GPS Mocking.
  */
 
 export interface WatermarkMetadata {
-  nip: string;
+  nip?: string;
   nama: string;
   namaKantor: string;
   koordinat: { lat: number; lng: number };
@@ -74,14 +74,14 @@ export function stampOfficialWatermark(
   ctx.font = `bold ${fontSizeHeader}px "Segoe UI", Roboto, sans-serif`;
   ctx.fillStyle = "#34d399"; // Emerald 400
   const row1Y = barY + Math.round(barHeight * 0.28);
-  ctx.fillText("PEMERINTAH KOTA SURAKARTA • PRESENSI RESMI ASN", paddingX, row1Y);
+  ctx.fillText("SISTEM PRESENSI RESMI • LOKASI TERVERIFIKASI", paddingX, row1Y);
 
   // Baris 2: Identitas Pegawai & Kantor
   ctx.font = `600 ${fontSizeBody}px "Segoe UI", Roboto, sans-serif`;
   ctx.fillStyle = "#ffffff";
   const row2Y = barY + Math.round(barHeight * 0.55);
   ctx.fillText(
-    `Pegawai: ${nama} (NIP: ${nip}) | Unit: ${namaKantor}`,
+    `Pegawai: ${nama} | Unit: ${namaKantor}`,
     paddingX,
     row2Y
   );

@@ -23,8 +23,32 @@ import {
   Inbox,
   Clock,
 } from "lucide-react";
+import { motion, Variants } from "framer-motion";
 
 import QuickPresensiWidget from "@/components/dashboard/QuickPresensiWidget";
+
+const containerVariants: Variants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1
+    }
+  }
+};
+
+const itemVariants: Variants = {
+  hidden: { opacity: 0, y: 20 },
+  show: { 
+    opacity: 1, 
+    y: 0, 
+    transition: { 
+      type: "spring", 
+      stiffness: 300, 
+      damping: 24 
+    } 
+  }
+};
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -60,15 +84,20 @@ export default function DashboardPage() {
   const kegiatanList = lkhToday?.kegiatan || [];
 
   return (
-    <div className="space-y-6">
+    <motion.div 
+      variants={containerVariants} 
+      initial="hidden" 
+      animate="show" 
+      className="space-y-6"
+    >
       {/* Hero ASN Welcome Banner */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-emerald-800 via-teal-800 to-slate-900 p-6 md:p-8 text-white shadow-lg border border-emerald-700/40">
+      <motion.div variants={itemVariants} className="relative overflow-hidden rounded-none sm:rounded-3xl border-x-0 sm:border border-emerald-700/50 bg-gradient-to-r from-emerald-800 via-teal-800 to-slate-900 p-5 sm:p-6 md:p-8 text-white shadow-none sm:shadow-[0_8px_30px_rgb(0,0,0,0.12)]">
         <div className="absolute -right-10 -bottom-10 w-64 h-64 bg-emerald-500/20 rounded-full blur-3xl pointer-events-none" />
         <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
           <div className="space-y-2 max-w-2xl">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-200 text-xs font-medium">
               <Building className="w-3.5 h-3.5 text-emerald-300" />
-              {user?.instansi || "Pemerintah Kota Surakarta - Solo Teknopark"}
+              {user?.instansi || "Perusahaan XYZ - Kantor Pusat"}
             </div>
             <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight">
               Selamat Bertugas, {user?.nama || "Pegawai ASN"}
@@ -96,15 +125,15 @@ export default function DashboardPage() {
             </Link>
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Grid: Status Hari Ini (Live Radar Presensi & LKH) */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+      <motion.div variants={itemVariants} className="grid-dashboard items-start">
         {/* Radar Presensi Real-Time & 1-Tap Action */}
         <QuickPresensiWidget />
 
         {/* Card Laporan Kegiatan Harian (LKH) Hari Ini */}
-        <Card className="border-slate-200/80 shadow-xs hover:shadow-md transition-shadow">
+        <Card className="card-interactive">
           <CardHeader className="pb-3 flex flex-row items-center justify-between">
             <div>
               <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
@@ -124,7 +153,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent className="space-y-4 pt-1">
             {kegiatanList.length === 0 ? (
-              <div className="p-6 rounded-xl bg-slate-50 border border-slate-200/70 text-center text-slate-400 space-y-1.5">
+              <div className="p-6 rounded-2xl bg-slate-50 border-0 text-center text-slate-400 space-y-1.5">
                 <Inbox className="w-8 h-8 mx-auto opacity-40" />
                 <p className="text-xs">Belum ada kegiatan kinerja yang dicatat hari ini.</p>
               </div>
@@ -133,7 +162,7 @@ export default function DashboardPage() {
                 {kegiatanList.slice(0, 2).map((item) => (
                   <div
                     key={item.id}
-                    className="p-3 rounded-lg bg-slate-50 border border-slate-200/70 text-xs flex items-center justify-between"
+                    className="p-3 rounded-2xl bg-slate-50 border-0 text-xs flex items-center justify-between"
                   >
                     <div className="space-y-0.5">
                       <div className="font-semibold text-slate-800">{item.deskripsi}</div>
@@ -158,11 +187,11 @@ export default function DashboardPage() {
             </div>
           </CardContent>
         </Card>
-      </div>
+      </motion.div>
 
       {/* Statistik Kehadiran Bulanan Berdasarkan Riwayat Nyata */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <Card className="border-slate-200/80 shadow-xs p-4 space-y-1 bg-white">
+      <motion.div variants={itemVariants} className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 px-3 sm:px-0">
+        <Card className="card-interactive p-4 space-y-1">
           <div className="flex items-center justify-between">
             <span className="text-xs text-slate-500 font-medium">Hadir Tepat Waktu</span>
             <CheckCircle2 className="w-4 h-4 text-emerald-600" />
@@ -173,7 +202,7 @@ export default function DashboardPage() {
           </div>
         </Card>
 
-        <Card className="border-slate-200/80 shadow-xs p-4 space-y-1 bg-white">
+        <Card className="card-interactive p-4 space-y-1">
           <div className="flex items-center justify-between">
             <span className="text-xs text-slate-500 font-medium">Terlambat</span>
             <AlertCircle className="w-4 h-4 text-amber-500" />
@@ -182,7 +211,7 @@ export default function DashboardPage() {
           <div className="text-[11px] text-amber-600">Evaluasi Disiplin ASN</div>
         </Card>
 
-        <Card className="border-slate-200/80 shadow-xs p-4 space-y-1 bg-white">
+        <Card className="card-interactive p-4 space-y-1">
           <div className="flex items-center justify-between">
             <span className="text-xs text-slate-500 font-medium">Izin / Cuti Resmi</span>
             <CalendarDays className="w-4 h-4 text-blue-500" />
@@ -191,7 +220,7 @@ export default function DashboardPage() {
           <div className="text-[11px] text-blue-600">Terlampir Surat Resmi</div>
         </Card>
 
-        <Card className="border-slate-200/80 shadow-xs p-4 space-y-1 bg-white">
+        <Card className="card-interactive p-4 space-y-1">
           <div className="flex items-center justify-between">
             <span className="text-xs text-slate-500 font-medium">Penilai Kinerja</span>
             <FileText className="w-4 h-4 text-teal-600" />
@@ -203,22 +232,7 @@ export default function DashboardPage() {
             <UserCheck2 className="w-3 h-3" /> Atasan Langsung
           </div>
         </Card>
-      </div>
-
-      {/* Maklumat / Informasi Kedinasan */}
-      <div className="p-4 rounded-xl bg-emerald-50/80 border border-emerald-200 flex items-start gap-3.5">
-        <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0 mt-0.5">
-          <Building className="w-4 h-4" />
-        </div>
-        <div className="space-y-0.5 text-xs">
-          <div className="font-semibold text-emerald-950">
-            Maklumat Pengisian LKH dan Presensi Pegawai
-          </div>
-          <p className="text-emerald-800 leading-relaxed">
-            Sesuai Peraturan Pemerintah No. 30 Tahun 2019 tentang Penilaian Kinerja PNS, seluruh pegawai diwajibkan melakukan presensi berbasis lokasi serta mengunggah bukti foto dan deskripsi kegiatan harian sebelum pukul 17:00 WIB setiap hari kerja.
-          </p>
-        </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }

@@ -29,6 +29,7 @@ export interface PegawaiFilter {
   kantorId?: string;
   role?: UserRole;
   search?: string;
+  departmentName?: string;
 }
 
 /**
@@ -38,13 +39,13 @@ export interface PegawaiFilter {
 export async function getPegawaiList(
   filters?: PegawaiFilter
 ): Promise<UserProfile[]> {
-  await requireAuth(["admin", "atasan"]);
+  const sessionUser = await requireAuth(["admin", "atasan"]);
 
   let list: UserProfile[] = [];
 
   if (isFirebaseAdminConfigured()) {
     try {
-      const snap = await adminDb.collection("users").get();
+      const snap = await adminDb.collection("users").where("orgId", "==", sessionUser.orgId).get();
       if (!snap.empty) {
         list = snap.docs.map((doc) => doc.data() as UserProfile);
       }
@@ -55,14 +56,17 @@ export async function getPegawaiList(
 
   // Mode Development Fallback: Gunakan dev store
   if (list.length === 0 && process.env.NODE_ENV === "development") {
-    list = Array.from(getDevUsersStore().values());
+    list = Array.from(getDevUsersStore().values()).filter(u => u.orgId === sessionUser.orgId);
   }
 
   // Terapkan filter di memori
   if (filters) {
-    const { kantorId, role, search } = filters;
+    const { kantorId, role, search, departmentName } = filters;
     if (kantorId && kantorId !== "all") {
       list = list.filter((u) => u.kantorId === kantorId);
+    }
+    if (departmentName && departmentName !== "all") {
+      list = list.filter((u) => u.departmentName === departmentName);
     }
     if (role && role !== ("all" as unknown as UserRole)) {
       list = list.filter((u) => u.role === role);
@@ -96,7 +100,7 @@ export async function getPegawaiList(
 export async function createPegawaiAction(
   payload: CreatePegawaiPayload
 ): Promise<{ success: boolean; data?: UserProfile; message: string }> {
-  await requireAuth(["admin"]);
+  const sessionUser = await requireAuth(["admin"]);
 
   // 1. Validasi Input Kedinasan
   const cleanNip = payload.nip.replace(/\D/g, "");
@@ -166,8 +170,8 @@ export async function createPegawaiAction(
     role: payload.role,
     jabatan: payload.jabatan.trim(),
     golongan: payload.golongan.trim(),
-    instansi: payload.instansi || "Pemerintah Kota Surakarta - Solo Teknopark",
-    orgId: payload.orgId || "org-surakarta",
+    instansi: payload.instansi || "Perusahaan XYZ - Kantor Pusat",
+    orgId: sessionUser.orgId, // Wajib gunakan orgId dari admin yang sedang login
     departmentId: payload.departmentId || "dept-umum-stp",
     departmentName: payload.departmentName || "Subdivisi Rekayasa Perangkat Lunak & AI",
     kantorId: payload.kantorId,
@@ -203,6 +207,7 @@ export async function createPegawaiAction(
 /**
  * Memperbarui profil ASN.
  * Akses: HANYA Role Admin (BKPSDM).
+ * FIX: Selalu sync atasanNama saat atasanId diubah untuk menghindari inkonsistensi data.
  */
 export async function updatePegawaiAction(
   userId: string,
@@ -210,9 +215,34 @@ export async function updatePegawaiAction(
 ): Promise<{ success: boolean; data?: UserProfile; message: string }> {
   await requireAuth(["admin"]);
 
+  let finalPayload = { ...payload };
+
+  // Sync atasanNama: jika atasanId disediakan tapi atasanNama tidak, resolve dari Firestore/dev store
+  if (finalPayload.atasanId && !finalPayload.atasanNama) {
+    if (isFirebaseAdminConfigured()) {
+      try {
+        const atasanSnap = await adminDb.collection("users").doc(finalPayload.atasanId).get();
+        if (atasanSnap.exists) {
+          finalPayload.atasanNama = (atasanSnap.data() as UserProfile).nama;
+        }
+      } catch (err) {
+        console.warn("[Pegawai Update] Gagal resolve atasanNama:", err);
+      }
+    } else if (process.env.NODE_ENV === "development") {
+      const store = getDevUsersStore();
+      const atasan = store.get(finalPayload.atasanId);
+      if (atasan) finalPayload.atasanNama = atasan.nama;
+    }
+  }
+
+  // Jika atasanId dikosongkan, hapus atasanNama juga
+  if (finalPayload.atasanId === "" || finalPayload.atasanId === null) {
+    finalPayload.atasanNama = "";
+  }
+
   if (isFirebaseAdminConfigured()) {
     try {
-      await adminDb.collection("users").doc(userId).set(payload, { merge: true });
+      await adminDb.collection("users").doc(userId).set(finalPayload, { merge: true });
     } catch (err) {
       console.warn("[Pegawai Update] Gagal update Firestore:", err);
     }
@@ -222,7 +252,7 @@ export async function updatePegawaiAction(
     const store = getDevUsersStore();
     const existing = store.get(userId);
     if (existing) {
-      const merged = { ...existing, ...payload };
+      const merged = { ...existing, ...finalPayload };
       store.set(userId, merged);
       return { success: true, data: merged, message: "Data profil ASN berhasil diperbarui." };
     }

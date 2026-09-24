@@ -5,6 +5,8 @@ import { requireAuth } from "@/lib/firebase/session";
 import { getDevLKHStore, SEED_FIREBASE_UIDS } from "@/data/seedData";
 import { LKHRecord, LKHItem, LKHStatus } from "@/types";
 import { TARGET_POIN_HARIAN } from "@/data/masterAktivitas";
+import { recordAuditLog } from "@/actions/audit";
+import { sendPushNotification } from "@/lib/firebase/fcm";
 
 function generateLkhDocId(userId: string, tanggal: string): string {
   return `${userId}_${tanggal}`;
@@ -16,6 +18,8 @@ export interface SaveLKHPayload {
   nama: string;
   orgId: string;
   tanggal: string; // YYYY-MM-DD
+  atasanId?: string; // ID atasan langsung
+  atasanNama?: string; // Nama atasan langsung
   kegiatan: LKHItem[];
   catatanPegawai?: string;
   status?: LKHStatus;
@@ -74,7 +78,7 @@ export async function saveLKH(
     };
   }
 
-  const { userId, nip, nama, orgId, tanggal, kegiatan, catatanPegawai, status = "draft" } = payload;
+  const { userId, nip, nama, orgId, tanggal, kegiatan, catatanPegawai, status = "draft", atasanId, atasanNama } = payload;
   const docId = generateLkhDocId(userId, tanggal);
   const nowIso = new Date().toISOString();
 
@@ -105,6 +109,9 @@ export async function saveLKH(
     nama,
     orgId,
     tanggal,
+    // Simpan atasanId dari profil pegawai (prioritas payload, fallback existing)
+    atasanId: atasanId || existing?.atasanId,
+    atasanNama: atasanNama || existing?.atasanNama,
     kegiatan,
     totalPoinHarian,
     targetPoinHarian: TARGET_POIN_HARIAN,
@@ -189,18 +196,23 @@ export async function getPendingLKHList(
   orgId?: string
 ): Promise<LKHRecord[]> {
   // Validasi sesi — hanya atasan/admin
-  await requireAuth(["atasan", "admin"]);
+  const sessionUser = await requireAuth(["atasan", "admin"]);
 
   if (isFirebaseAdminConfigured()) {
     try {
-      let query = adminDb.collection("lkh").where("status", "==", "submitted");
-      if (orgId) {
-        query = query.where("orgId", "==", orgId);
-      }
+      let query = adminDb.collection("lkh")
+        .where("status", "==", "submitted")
+        .where("orgId", "==", sessionUser.orgId);
+
       const snap = await query.get();
 
       if (!snap.empty) {
-        return snap.docs.map((doc) => doc.data() as LKHRecord);
+        let list = snap.docs.map((doc) => doc.data() as LKHRecord);
+        // Filter: atasan hanya melihat LKH bawahan langsungnya
+        if (sessionUser.role === "atasan") {
+          list = list.filter((item) => item.atasanId === sessionUser.id);
+        }
+        return list;
       }
     } catch (err) {
       console.warn("[LKH Pending] Gagal query Firestore:", err);
@@ -209,8 +221,13 @@ export async function getPendingLKHList(
 
   // Fallback Dev Mode: Ambil dari dev store yang statusnya submitted
   if (process.env.NODE_ENV === "development") {
-    const list = Array.from(getDevLKHStore().values());
-    return list.filter((item) => item.status === "submitted" && (!orgId || item.orgId === orgId));
+    let list = Array.from(getDevLKHStore().values());
+    list = list.filter((item) => item.status === "submitted" && item.orgId === sessionUser.orgId);
+    // Filter per atasan
+    if (sessionUser.role === "atasan") {
+      list = list.filter((item) => item.atasanId === sessionUser.id);
+    }
+    return list;
   }
 
   return [];
@@ -277,6 +294,21 @@ export async function approveLKH(
     getDevLKHStore().set(lkhId, updated);
   }
 
+  // Rekam Audit Log
+  await recordAuditLog({
+    action: "APPROVE",
+    entityType: "LKH",
+    entityId: lkhId,
+    details: `LKH ${target.tanggal} disetujui`,
+  });
+
+  // Kirim FCM Push Notification
+  await sendPushNotification({
+    userId: target.userId,
+    title: "LKH Disetujui ✅",
+    body: `Laporan kegiatan Anda tanggal ${target.tanggal} telah disetujui oleh atasan.`,
+  });
+
   return { success: true, data: updated };
 }
 
@@ -340,6 +372,21 @@ export async function rejectLKH(
   if (process.env.NODE_ENV === "development") {
     getDevLKHStore().set(lkhId, updated);
   }
+
+  // Rekam Audit Log
+  await recordAuditLog({
+    action: "REJECT",
+    entityType: "LKH",
+    entityId: lkhId,
+    details: `LKH ${target.tanggal} ditolak: ${rejectedReason}`,
+  });
+
+  // Kirim FCM Push Notification
+  await sendPushNotification({
+    userId: target.userId,
+    title: "LKH Ditolak ❌",
+    body: `Laporan kegiatan Anda tanggal ${target.tanggal} perlu perbaikan: ${rejectedReason}`,
+  });
 
   return { success: true, data: updated };
 }

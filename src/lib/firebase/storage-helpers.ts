@@ -13,7 +13,7 @@ export interface UploadFileOptions {
 }
 
 /**
- * Membuat struktur path penyimpanan hierarkis resmi ASN:
+ * Membuat struktur path penyimpanan hierarkis resmi:
  * /presensi-pegawai/{orgId}/{userId}/{year}/{month}/{uniqueFilename}
  */
 export function generateAsnStoragePath(

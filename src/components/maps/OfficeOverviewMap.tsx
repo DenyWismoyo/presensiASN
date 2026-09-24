@@ -70,6 +70,7 @@ export default function OfficeOverviewMap({
 
     // Tambahkan marker dan geofence circle untuk setiap kantor
     offices.forEach((office) => {
+      if (!office?.koordinat?.lat || !office?.koordinat?.lng) return;
       const latlng: L.LatLngTuple = [office.koordinat.lat, office.koordinat.lng];
       bounds.push(latlng);
 

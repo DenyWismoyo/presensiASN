@@ -2,11 +2,13 @@
   "firestore": [
     {
       "database": "presensi-pegawai",
-      "rules": "firestore.rules"
+      "rules": "firestore.rules",
+      "indexes": "firestore.indexes.json"
     },
     {
       "database": "(default)",
-      "rules": "firestore.rules"
+      "rules": "firestore.rules",
+      "indexes": "firestore.indexes.json"
     }
   ],
   "storage": {

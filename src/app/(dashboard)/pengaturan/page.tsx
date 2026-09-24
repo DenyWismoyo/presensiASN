@@ -21,6 +21,7 @@ import {
   Compass,
   Clock,
   RotateCcw,
+  Pencil,
 } from "lucide-react";
 
 import { seedDatabaseAction } from "@/actions/seed";
@@ -59,10 +60,10 @@ export default function PengaturanKantorPage() {
   const deleteKantorMutation = useDeleteKantorMutation();
   const [isSeeding, setIsSeeding] = useState(false);
 
-  const offices: KantorUnit[] =
-    kantorListFromDb && kantorListFromDb.length > 0 ? kantorListFromDb : DEFAULT_KANTOR_LIST;
+  const offices: KantorUnit[] = kantorListFromDb || [];
 
   const [showAddForm, setShowAddForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState<{
     kodeKantor: string;
     namaKantor: string;
@@ -118,7 +119,7 @@ export default function PengaturanKantorPage() {
     }
 
     const newKantor: KantorUnit = {
-      id: `kantor-${Date.now()}`,
+      id: editingId || `kantor-${Date.now()}`,
       kodeKantor: formData.kodeKantor.toUpperCase(),
       namaKantor: formData.namaKantor,
       kategori: formData.kategori,
@@ -135,8 +136,9 @@ export default function PengaturanKantorPage() {
     };
 
     await saveKantorMutation.mutateAsync(newKantor);
-    setStatusMessage(`Titik kantor "${newKantor.namaKantor}" berhasil ditambahkan!`);
+    setStatusMessage(editingId ? `Titik kantor "${newKantor.namaKantor}" berhasil diperbarui!` : `Titik kantor "${newKantor.namaKantor}" berhasil ditambahkan!`);
     setShowAddForm(false);
+    setEditingId(null);
     setFormData({
       kodeKantor: "",
       namaKantor: "",
@@ -149,6 +151,23 @@ export default function PengaturanKantorPage() {
       jamPulangMinimal: "16:00",
     });
     setTimeout(() => setStatusMessage(null), 4000);
+  };
+
+  const handleEditClick = (kantor: KantorUnit) => {
+    setEditingId(kantor.id);
+    setFormData({
+      kodeKantor: kantor.kodeKantor,
+      namaKantor: kantor.namaKantor,
+      kategori: kantor.kategori,
+      alamat: kantor.alamat,
+      lat: (kantor.koordinat?.lat ?? -7.558392).toString(),
+      lng: (kantor.koordinat?.lng ?? 110.857528).toString(),
+      radiusMeter: kantor.radiusMeter || 150,
+      jamMasukMaksimal: kantor.jamMasukMaksimal || "07:30",
+      jamPulangMinimal: kantor.jamPulangMinimal || "16:00",
+    });
+    setShowAddForm(true);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleDelete = async (id: string, nama: string) => {
@@ -192,11 +211,29 @@ export default function PengaturanKantorPage() {
             className="text-xs font-medium h-9 border-slate-300 text-slate-700 hover:bg-slate-100"
           >
             <RotateCcw className={`w-3.5 h-3.5 mr-1.5 ${isSeeding ? "animate-spin" : ""}`} />
-            {isSeeding ? "Menyuntikkan Seed..." : "Reset & Inisialisasi Seed Demo (Solo Teknopark)"}
+            {isSeeding ? "Menyuntikkan Seed..." : "Reset & Inisialisasi Seed Demo (Kantor Pusat)"}
           </Button>
 
           <Button
-            onClick={() => setShowAddForm(!showAddForm)}
+            onClick={() => {
+              if (showAddForm) {
+                setShowAddForm(false);
+                setEditingId(null);
+                setFormData({
+                  kodeKantor: "",
+                  namaKantor: "",
+                  kategori: "OPD / Dinas",
+                  alamat: "",
+                  lat: "-7.568500",
+                  lng: "110.828000",
+                  radiusMeter: 150,
+                  jamMasukMaksimal: "07:30",
+                  jamPulangMinimal: "16:00",
+                });
+              } else {
+                setShowAddForm(true);
+              }
+            }}
             className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold h-9 shadow-sm"
           >
             <Plus className="w-4 h-4 mr-1.5" />
@@ -215,24 +252,24 @@ export default function PengaturanKantorPage() {
 
       {/* Statistik Ringkas */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <Card className="border-slate-200/80 shadow-sm p-4">
+        <Card className="p-4">
           <div className="text-[11px] text-slate-500 font-medium">Total Titik Kantor</div>
           <div className="text-2xl font-bold text-slate-900 mt-1">{offices.length}</div>
           <div className="text-[10px] text-emerald-600 mt-0.5">Tersebar di wilayah kerja</div>
         </Card>
-        <Card className="border-slate-200/80 shadow-sm p-4">
+        <Card className="p-4">
           <div className="text-[11px] text-slate-500 font-medium">Kantor Aktif</div>
           <div className="text-2xl font-bold text-emerald-600 mt-1">
             {offices.filter((k) => k.isActive).length}
           </div>
           <div className="text-[10px] text-slate-400 mt-0.5">Menerima presensi online</div>
         </Card>
-        <Card className="border-slate-200/80 shadow-sm p-4">
+        <Card className="p-4">
           <div className="text-[11px] text-slate-500 font-medium">Radius Geofence Default</div>
           <div className="text-2xl font-bold text-teal-600 mt-1">150m</div>
           <div className="text-[10px] text-slate-400 mt-0.5">Toleransi akurasi GPS</div>
         </Card>
-        <Card className="border-slate-200/80 shadow-sm p-4">
+        <Card className="p-4">
           <div className="text-[11px] text-slate-500 font-medium">Auto-Detection</div>
           <div className="text-2xl font-bold text-indigo-600 mt-1">Haversine</div>
           <div className="text-[10px] text-slate-400 mt-0.5">Kalkulasi presisi koordinat</div>
@@ -241,11 +278,11 @@ export default function PengaturanKantorPage() {
 
       {/* Form Tambah Kantor Baru */}
       {showAddForm && (
-        <Card className="border-emerald-200 bg-emerald-50/20 shadow-md">
+        <Card className="border-emerald-200 bg-emerald-50/20">
           <CardHeader className="pb-3 border-b border-emerald-100">
             <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2">
               <Sliders className="w-5 h-5 text-emerald-600" />
-              Pendaftaran Titik Lokasi Kantor Baru
+              {editingId ? "Edit Titik Lokasi Kantor" : "Pendaftaran Titik Lokasi Kantor Baru"}
             </CardTitle>
             <CardDescription className="text-xs text-slate-600">
               Pastikan koordinat Latitude dan Longitude bersumber dari titik resmi Google Maps / Satelit GPS
@@ -418,7 +455,21 @@ export default function PengaturanKantorPage() {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => setShowAddForm(false)}
+                  onClick={() => {
+                    setShowAddForm(false);
+                    setEditingId(null);
+                    setFormData({
+                      kodeKantor: "",
+                      namaKantor: "",
+                      kategori: "OPD / Dinas",
+                      alamat: "",
+                      lat: "-7.568500",
+                      lng: "110.828000",
+                      radiusMeter: 150,
+                      jamMasukMaksimal: "07:30",
+                      jamPulangMinimal: "16:00",
+                    });
+                  }}
                   className="text-xs"
                 >
                   Batal
@@ -428,7 +479,7 @@ export default function PengaturanKantorPage() {
                   disabled={saveKantorMutation.isPending}
                   className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold"
                 >
-                  Simpan Titik Kantor
+                  {editingId ? "Simpan Perubahan" : "Simpan Titik Kantor"}
                 </Button>
               </div>
             </form>
@@ -440,7 +491,7 @@ export default function PengaturanKantorPage() {
       <OfficeOverviewMap offices={offices} />
 
       {/* Tabel Daftar Seluruh Titik Kantor */}
-      <Card className="border-slate-200/80 shadow-sm overflow-hidden">
+      <Card className="overflow-hidden">
         <CardHeader className="bg-slate-50 border-b border-slate-200/80 py-4 px-6">
           <CardTitle className="text-sm font-bold text-slate-900 flex items-center gap-2">
             <Compass className="w-4 h-4 text-emerald-600" />
@@ -489,7 +540,8 @@ export default function PengaturanKantorPage() {
                       <div className="flex items-center gap-1">
                         <MapPin className="w-3 h-3 text-emerald-600 shrink-0" />
                         <span>
-                          {kantor.koordinat.lat.toFixed(6)}, {kantor.koordinat.lng.toFixed(6)}
+                          {kantor.koordinat?.lat != null ? kantor.koordinat.lat.toFixed(6) : "-"},{" "}
+                          {kantor.koordinat?.lng != null ? kantor.koordinat.lng.toFixed(6) : "-"}
                         </span>
                       </div>
                     </td>
@@ -522,15 +574,26 @@ export default function PengaturanKantorPage() {
                     </td>
 
                     <td className="py-3.5 px-4 text-right">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => handleDelete(kantor.id, kantor.namaKantor)}
-                        className="h-7 w-7 p-0 text-red-500 hover:bg-red-50 hover:text-red-700"
-                        title="Hapus Kantor"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </Button>
+                      <div className="flex items-center justify-end gap-1">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleEditClick(kantor)}
+                          className="h-7 w-7 p-0 text-slate-500 hover:bg-slate-100 hover:text-emerald-700"
+                          title="Edit Kantor"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleDelete(kantor.id, kantor.namaKantor)}
+                          className="h-7 w-7 p-0 text-red-500 hover:bg-red-50 hover:text-red-700"
+                          title="Hapus Kantor"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))}

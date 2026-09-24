@@ -13,8 +13,8 @@ import { auth, db } from "./config";
 import { UserProfile } from "@/types";
 
 /**
- * Normalisasi format NIP atau Email kedinasan menjadi format email standar Firebase Auth.
- * Contoh: '19920817 201801 1 002' -> '199208172018011002@asn.go.id'
+ * Normalisasi format NIP atau Email menjadi format email standar Firebase Auth.
+ * Contoh: '19920817 201801 1 002' -> '199208172018011002@pegawai.app'
  */
 export function normalizeNipToEmail(input: string): string {
   const trimmed = input.trim();
@@ -23,13 +23,13 @@ export function normalizeNipToEmail(input: string): string {
   }
   // Bersihkan spasi dan tanda pemisah lainnya
   const cleanDigits = trimmed.replace(/\D/g, "");
-  return `${cleanDigits}@asn.go.id`;
+  return `${cleanDigits}@pegawai.app`;
 }
 
 import { getDevUserProfile } from "@/data/seedData";
 
 /**
- * Mengambil profil ASN dari koleksi Firestore `users/{uid}`
+ * Mengambil profil user/pegawai dari koleksi Firestore `users/{uid}`
  */
 export async function getUserProfileFromFirestore(
   uid: string
@@ -44,7 +44,7 @@ export async function getUserProfileFromFirestore(
     console.warn("[Firebase] Gagal mengambil profil dari Firestore:", error);
   }
 
-  // Mode Development: gunakan profil ASN Seed jika Firestore belum terisi atau terhalang security rules
+  // Mode Development: gunakan profil Seed jika Firestore belum terisi atau terhalang security rules
   if (process.env.NODE_ENV === "development") {
     const devProfile = getDevUserProfile(uid);
     if (devProfile) {
@@ -56,7 +56,7 @@ export async function getUserProfileFromFirestore(
 }
 
 /**
- * Menyimpan atau memperbarui profil ASN di Firestore `users/{uid}`
+ * Menyimpan atau memperbarui profil pegawai di Firestore `users/{uid}`
  */
 export async function upsertUserProfileToFirestore(
   profile: UserProfile
@@ -76,8 +76,10 @@ export async function upsertUserProfileToFirestore(
   }
 }
 
+import { lookupEmailByAccessCode } from "@/actions/auth";
+
 /**
- * Autentikasi ASN via Firebase Auth.
+ * Autentikasi user via Firebase Auth.
  * Tidak ada fallback simulasi — jika gagal, error dilempar ke UI.
  *
  * @throws Error jika kredensial tidak valid atau Firebase tidak tersedia
@@ -86,7 +88,26 @@ export async function loginWithNipOrEmail(
   nipOrEmail: string,
   password: string,
 ): Promise<{ user: FirebaseUser; profile: UserProfile }> {
-  const email = normalizeNipToEmail(nipOrEmail);
+  let email = nipOrEmail.trim();
+
+  // Jika input tidak mengandung @, bisa jadi NIP atau Access Code (misal STP001)
+  if (!email.includes("@")) {
+    const isAccessCode = /^[A-Za-z]+[-]?\d+$/i.test(email);
+    if (isAccessCode) {
+      // Lookup email dari Firestore via Server Action
+      const lookupEmail = await lookupEmailByAccessCode(email);
+      if (lookupEmail) {
+        email = lookupEmail;
+      } else {
+        throw new Error("Access Code tidak ditemukan di dalam sistem.");
+      }
+    } else {
+      // Fallback ke normalisasi NIP
+      email = normalizeNipToEmail(nipOrEmail);
+    }
+  } else {
+    email = email.toLowerCase();
+  }
 
   // Login via Firebase Auth — jika gagal, throw error ke UI
   const userCredential = await signInWithEmailAndPassword(auth, email, password);
@@ -105,7 +126,7 @@ export async function loginWithNipOrEmail(
     // Admin harus membuat profil terlebih dahulu via seed atau manajemen user.
     await signOut(auth);
     throw new Error(
-      "Profil ASN Anda belum terdaftar di sistem. " +
+      "Profil Anda belum terdaftar di sistem. " +
       "Hubungi Administrator untuk pendaftaran akun."
     );
   }

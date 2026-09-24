@@ -2,14 +2,14 @@ import { KantorUnit, UserProfile, UserRole, PresensiRecord, LKHRecord } from "@/
 import { DEFAULT_STORAGE_LIMIT_BYTES } from "@/lib/utils";
 
 /**
- * 1 Kantor Percontohan Resmi: Solo Teknopark Surakarta
+ * 1 Kantor Percontohan Resmi: Kantor Pusat (Head Office)
  */
 export const SEED_KANTOR: KantorUnit = {
-  id: "kantor-stp",
-  kodeKantor: "STP-01",
-  namaKantor: "Solo Teknopark (Pusat Vokasi & Inovasi)",
+  id: "kantor-demo-surakarta",
+  kodeKantor: "PST-01",
+  namaKantor: "Kantor Pusat (Head Office)",
   kategori: "Kawasan Khusus",
-  alamat: "Jl. Ki Hajar Dewantara No.19, Jebres, Kota Surakarta, Jawa Tengah 57126",
+  alamat: "Jl. Jenderal Sudirman No. 1",
   koordinat: {
     lat: -7.558392,
     lng: 110.857528,
@@ -22,7 +22,7 @@ export const SEED_KANTOR: KantorUnit = {
 };
 
 /**
- * 3 Akun ASN Demo Terpadu pada Kantor Solo Teknopark
+ * 3 Akun Pegawai Demo Terpadu pada Kantor Pusat
  * Saling berelasi:
  * - Admin mengelola kepegawaian kantor
  * - Atasan (Kepala Divisi) menjadi penilai kinerja
@@ -35,23 +35,23 @@ export const SEED_FIREBASE_UIDS = {
 };
 
 /**
- * 3 Akun ASN Demo Terpadu pada Kantor Solo Teknopark
+ * 3 Akun Pegawai Demo Terpadu pada Kantor Pusat
  * ID diselaraskan langsung dengan UID Firebase Auth yang telah terdaftar resmi
  */
 export const SEED_USERS: Record<UserRole, UserProfile> = {
   admin: {
     id: SEED_FIREBASE_UIDS.admin,
     nip: "19850101 201001 1 005",
-    nama: "Hendra Wijaya, S.STP, M.AP",
+    nama: "Hendra Wijaya (Admin Utama)",
     email: "admin.stp@surakarta.go.id",
     role: "admin",
     jabatan: "Administrator Kepegawaian Utama",
     golongan: "III/d - Penata Tingkat I",
-    instansi: "Pemerintah Kota Surakarta - Solo Teknopark",
+    instansi: "Perusahaan XYZ - Kantor Pusat",
     departmentId: "dept-adm-stp",
-    departmentName: "Sekretariat & Tata Usaha Solo Teknopark",
-    kantorId: "kantor-stp",
-    namaKantor: "Solo Teknopark",
+    departmentName: "Divisi IT & Operasional",
+    kantorId: "kantor-demo-surakarta",
+    namaKantor: "Kantor Pusat",
     orgId: "org-surakarta",
     nomorHp: "081377889900",
     storageUsedBytes: 52428800, // ~50 MB
@@ -60,16 +60,16 @@ export const SEED_USERS: Record<UserRole, UserProfile> = {
   atasan: {
     id: SEED_FIREBASE_UIDS.atasan,
     nip: "19780412 200502 2 001",
-    nama: "Dra. Siti Rahmawati, M.Si.",
+    nama: "Siti Rahmawati (Manajer)",
     email: "siti.rahmawati@surakarta.go.id",
     role: "atasan",
     jabatan: "Kepala Divisi Inovasi & Teknologi",
-    golongan: "IV/b - Pembina Tingkat I",
-    instansi: "Pemerintah Kota Surakarta - Solo Teknopark",
+    golongan: "Manajemen - Gol IV/b",
+    instansi: "Perusahaan XYZ - Kantor Pusat",
     departmentId: "dept-inovasi-stp",
-    departmentName: "Divisi Inovasi & Alih Teknologi Solo Teknopark",
-    kantorId: "kantor-stp",
-    namaKantor: "Solo Teknopark",
+    departmentName: "Divisi Inovasi & Teknologi",
+    kantorId: "kantor-demo-surakarta",
+    namaKantor: "Kantor Pusat",
     orgId: "org-surakarta",
     nomorHp: "081298765432",
     storageUsedBytes: 125829120, // ~120 MB
@@ -82,14 +82,14 @@ export const SEED_USERS: Record<UserRole, UserProfile> = {
     email: "budi.santoso@surakarta.go.id",
     role: "pegawai",
     jabatan: "Pranata Komputer Ahli Pertama",
-    golongan: "III/a - Penata Muda",
-    instansi: "Pemerintah Kota Surakarta - Solo Teknopark",
+    golongan: "Manajemen - Gol IV/a",
+    instansi: "Perusahaan XYZ - Kantor Pusat",
     departmentId: "dept-inovasi-stp",
     departmentName: "Subdivisi Rekayasa Perangkat Lunak & AI",
     atasanId: SEED_FIREBASE_UIDS.atasan,
-    atasanNama: "Dra. Siti Rahmawati, M.Si.",
-    kantorId: "kantor-stp",
-    namaKantor: "Solo Teknopark",
+    atasanNama: "Siti Rahmawati (Manajer)",
+    kantorId: "kantor-demo-surakarta",
+    namaKantor: "Kantor Pusat",
     orgId: "org-surakarta",
     nomorHp: "081234567890",
     storageUsedBytes: 83886080, // ~80 MB
@@ -108,13 +108,13 @@ export const SEED_PEGAWAI_2: UserProfile = {
   role: "pegawai",
   jabatan: "Pranata Komputer Pelaksana",
   golongan: "II/c - Pengatur",
-  instansi: "Pemerintah Kota Surakarta - Solo Teknopark",
+  instansi: "Perusahaan XYZ - Kantor Pusat",
   departmentId: "dept-inovasi-stp",
   departmentName: "Subdivisi Rekayasa Perangkat Lunak & AI",
   atasanId: SEED_FIREBASE_UIDS.atasan,
   atasanNama: "Dra. Siti Rahmawati, M.Si.",
   kantorId: "kantor-stp",
-  namaKantor: "Solo Teknopark",
+  namaKantor: "Kantor Pusat",
   orgId: "org-surakarta",
   nomorHp: "081322334455",
   storageUsedBytes: 31457280,
@@ -149,7 +149,7 @@ export function getDevUserProfile(identifier: string): UserProfile | null {
 }
 
 /**
- * Rekap Presensi Hari Ini (Sudah Check-In Hadir di Solo Teknopark)
+ * Rekap Presensi Hari Ini (Sudah Check-In Hadir di Kantor Pusat)
  */
 const todayStr = new Date().toISOString().split("T")[0];
 
@@ -161,7 +161,7 @@ export const SEED_PRESENSI_SAMPLE: PresensiRecord = {
   orgId: "org-surakarta",
   tanggal: todayStr,
   kantorId: "kantor-stp",
-  namaKantor: "Solo Teknopark (Pusat Vokasi & Inovasi)",
+  namaKantor: "Kantor Pusat (Head Office)",
   status: "hadir",
   checkIn: {
     waktu: `${todayStr}T07:18:24.000Z`,
@@ -171,9 +171,9 @@ export const SEED_PRESENSI_SAMPLE: PresensiRecord = {
     },
     fotoUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80",
     isValidLocation: true,
-    alamat: "Jl. Ki Hajar Dewantara No.19, Jebres, Solo Teknopark",
+    alamat: "Jl. Jenderal Sudirman No. 1, Kantor Pusat",
     kantorId: "kantor-stp",
-    namaKantor: "Solo Teknopark",
+    namaKantor: "Kantor Pusat",
     jarakMeter: 12,
   },
 };
@@ -223,7 +223,7 @@ export function generateSeedPresensiHistory(userId: string = SEED_FIREBASE_UIDS.
       orgId: "org-surakarta",
       tanggal: tgl,
       kantorId: "kantor-stp",
-      namaKantor: "Solo Teknopark",
+      namaKantor: "Kantor Pusat",
       status,
       durasiKerjaMenit: isIzin || isCuti ? 0 : 510 + (i % 20),
       checkIn: isIzin || isCuti ? undefined : {
@@ -231,9 +231,9 @@ export function generateSeedPresensiHistory(userId: string = SEED_FIREBASE_UIDS.
         koordinat: { lat: -7.558392, lng: 110.857528 },
         fotoUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80",
         isValidLocation: true,
-        alamat: "Solo Teknopark, Jebres",
+        alamat: "Kantor Pusat",
         kantorId: "kantor-stp",
-        namaKantor: "Solo Teknopark",
+        namaKantor: "Kantor Pusat",
         jarakMeter: 15,
       },
       checkOut: isIzin || isCuti ? undefined : {
@@ -241,9 +241,9 @@ export function generateSeedPresensiHistory(userId: string = SEED_FIREBASE_UIDS.
         koordinat: { lat: -7.558392, lng: 110.857528 },
         fotoUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80",
         isValidLocation: true,
-        alamat: "Solo Teknopark, Jebres",
+        alamat: "Kantor Pusat",
         kantorId: "kantor-stp",
-        namaKantor: "Solo Teknopark",
+        namaKantor: "Kantor Pusat",
         jarakMeter: 18,
       },
     });
@@ -271,14 +271,14 @@ export const SEED_PENDING_LKH_LIST: LKHRecord[] = [
     totalPoinHarian: 320,
     targetPoinHarian: 300,
     isTargetTercapai: true,
-    catatanPegawai: "Pengembangan modul presensi & peta GPS Solo Teknopark selesai dikerjakan sesuai arahan.",
+    catatanPegawai: "Pengembangan modul presensi & peta GPS Kantor Pusat selesai dikerjakan sesuai arahan.",
     kegiatan: [
       {
         id: "keg-seed-1",
         aktivitasId: 41,
         namaAktivitasBaku: "Membuat laporan / telaahan teknis",
         kategoriAktivitas: "Persuratan",
-        deskripsi: "Menyusun telaahan arsitektur sistem presensi berbasis GPS di lingkungan Solo Teknopark",
+        deskripsi: "Menyusun telaahan arsitektur sistem presensi berbasis GPS di lingkungan Kantor Pusat",
         outputKegiatan: "Dokumen Telaahan Teknis Arsitektur",
         volumeKegiatan: 1,
         satuanKegiatan: "Per dokumen",

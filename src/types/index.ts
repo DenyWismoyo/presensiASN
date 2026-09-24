@@ -8,14 +8,24 @@ export type PresensiStatus =
   | "cuti"
   | "dinas"
   | "alpa"
-  | "libur";
-
+  | "libur"
+  | "lembur";
 
 export type LKHStatus = "draft" | "submitted" | "approved" | "rejected";
+
+export type LemburStatus =
+  | "draft"
+  | "diajukan"
+  | "disetujui"
+  | "ditolak"
+  | "selesai";
+
+export type LemburJenis = "hari_kerja" | "hari_libur" | "hari_raya";
 
 export interface UserProfile {
   id: string;
   nip: string;
+  accessCode?: string; // Digunakan sebagai alternatif login jika bukan PNS
   nama: string;
   email: string;
   role: UserRole;
@@ -103,6 +113,7 @@ export interface PresensiRecord {
   nama: string;
   orgId: string;
   tanggal: string; // Format: YYYY-MM-DD
+  shiftId?: string; // e.g. 'pagi', 'siang', 'malam' (untuk multi-shift)
   kantorId?: string;
   namaKantor?: string;
   checkIn?: PresensiCheckPoint;
@@ -111,6 +122,8 @@ export interface PresensiRecord {
   durasiKerjaMenit?: number;
   keterangan?: string;
   suratIzinUrl?: string;
+  izinId?: string;
+  lemburRecordId?: string;
 }
 
 export interface LKHItem {
@@ -137,6 +150,8 @@ export interface LKHRecord {
   nama: string;
   orgId: string;
   tanggal: string; // Format: YYYY-MM-DD
+  atasanId?: string; // ID atasan langsung penilai
+  atasanNama?: string; // Nama atasan langsung (denormalized)
   kegiatan: LKHItem[];
   totalPoinHarian: number; // Akumulasi total poin harian
   targetPoinHarian: number; // Minimal 300 Poin
@@ -166,6 +181,8 @@ export interface PengajuanIzinItem {
   userId: string;
   nama: string;
   nip: string;
+  orgId: string;
+  atasanId: string;
   jenis: "Cuti Tahunan" | "Izin Alasan Penting" | "Sakit" | "Dinas Luar";
   tanggalMulai: string;
   tanggalSelesai: string;
@@ -183,6 +200,7 @@ export interface CheckInPayload {
   nama: string;
   orgId: string;
   tanggal: string; // YYYY-MM-DD
+  shiftId?: string;
   kantorId?: string;
   namaKantor?: string;
   jarakMeter?: number;
@@ -198,6 +216,7 @@ export interface CheckInPayload {
 export interface CheckOutPayload {
   userId: string;
   tanggal: string; // YYYY-MM-DD
+  shiftId?: string;
   kantorId?: string;
   namaKantor?: string;
   jarakMeter?: number;
@@ -209,3 +228,95 @@ export interface CheckOutPayload {
   gpsAccuracyMeter?: number;
   isMockDetected?: boolean;
 }
+
+// ============================================================
+// LEMBUR (Overtime) Types
+// ============================================================
+
+export interface LemburRecord {
+  id: string;
+  userId: string;
+  nip: string;
+  nama: string;
+  orgId: string;
+  tanggal: string; // YYYY-MM-DD
+  jenis: LemburJenis;
+  alasanLembur: string;
+  jamMulaiRencana: string; // 'HH:mm'
+  jamSelesaiRencana: string; // 'HH:mm'
+  atasanId: string;
+  atasanNama: string;
+  status: LemburStatus;
+  checkInLembur?: PresensiCheckPoint;
+  checkOutLembur?: PresensiCheckPoint;
+  durasiLemburMenit?: number;
+  suratPerintahLemburUrl?: string;
+  catatanAtasan?: string;
+  approvedBy?: string;
+  approvedByName?: string;
+  approvedAt?: string;
+  rejectedReason?: string;
+  createdAt: string;
+  updatedAt: string;
+  presensiRecordId?: string;
+}
+
+export interface PengajuanLemburPayload {
+  userId: string;
+  nip: string;
+  nama: string;
+  orgId: string;
+  tanggal: string; // YYYY-MM-DD
+  jenis: LemburJenis;
+  alasanLembur: string;
+  jamMulaiRencana: string;
+  jamSelesaiRencana: string;
+  atasanId: string;
+  atasanNama: string;
+  suratPerintahLemburUrl?: string;
+}
+
+export interface CheckInLemburPayload {
+  userId: string;
+  tanggal: string;
+  kantorId?: string;
+  namaKantor?: string;
+  jarakMeter?: number;
+  koordinat: GeolocationPoint;
+  fotoUrl: string;
+  isValidLocation: boolean;
+  alamat?: string;
+  gpsAccuracyMeter?: number;
+  isMockDetected?: boolean;
+}
+
+export interface CheckOutLemburPayload {
+  userId: string;
+  tanggal: string;
+  kantorId?: string;
+  namaKantor?: string;
+  jarakMeter?: number;
+  koordinat: GeolocationPoint;
+  fotoUrl: string;
+  isValidLocation: boolean;
+  alamat?: string;
+  gpsAccuracyMeter?: number;
+  isMockDetected?: boolean;
+}
+
+// ============================================================
+// ORGANIZATION / TENANT (White-Label) Types
+// ============================================================
+
+export interface OrganizationConfig {
+  id: string; // orgId (e.g. 'org-surakarta', 'org-rsud')
+  name: string;
+  logoUrl?: string;
+  themeColor?: string;
+  defaultJamMasukMaksimal: string; // '07:30'
+  defaultJamPulangMinimal: string; // '16:00'
+  timezone?: string; // 'Asia/Jakarta'
+  createdAt: string;
+  updatedAt: string;
+}
+

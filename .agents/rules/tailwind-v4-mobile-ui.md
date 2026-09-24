@@ -1,0 +1,10 @@
+# Aturan Pengembangan UI: Tailwind v4 & Mobile Edge-to-Edge
+
+1. **Tailwind v4 `@apply` Restrictions:**
+   - JANGAN pernah menggunakan nested `@apply` untuk custom class yang didefinisikan sendiri di dalam file CSS (contoh: `@apply card-base` di dalam deklarasi `.card-interactive`).
+   - Tailwind v4 hanya mengizinkan `@apply` untuk native utility class (seperti `bg-red-500`, `flex`, dll). Jika ada gaya dasar yang berulang, jabarkan native utility-nya secara eksplisit di setiap custom class.
+
+2. **Mobile Edge-to-Edge Design (Borderless):**
+   - Halaman fungsional seperti Presensi, LKH, Izin, dan Lembur HARUS berdesain *edge-to-edge* pada tampilan layar kecil (ponsel).
+   - Pastikan container utama tidak memiliki padding horizontal di mobile (misal: gunakan `p-0 sm:p-4 md:p-6` alih-alih hanya `p-4`).
+   - Komponen kontainer utama (seperti `.card-base`) di mobile harus tanpa border horizontal dan radius (misal: `border-x-0 rounded-none sm:border sm:border-x sm:rounded-3xl`).

@@ -17,15 +17,15 @@ export function Avatar({
   ...props
 }: AvatarProps) {
   const sizeClasses = {
-    sm: "h-8 w-8 text-xs",
-    md: "h-10 w-10 text-sm",
-    lg: "h-14 w-14 text-base",
+    sm: "avatar-sm",
+    md: "avatar-md",
+    lg: "avatar-lg",
   };
 
   return (
     <div
       className={cn(
-        "relative flex shrink-0 overflow-hidden rounded-full font-medium bg-emerald-100 text-emerald-800 ring-2 ring-emerald-500/20 items-center justify-center select-none shadow-sm",
+        "avatar-base shadow-sm ring-2 ring-primary/20",
         sizeClasses[size],
         className
       )}
@@ -36,10 +36,10 @@ export function Avatar({
         <img
           src={src}
           alt={alt}
-          className="aspect-square h-full w-full object-cover"
+          className="avatar-img"
         />
       ) : (
-        <span>{fallback}</span>
+        <span className="avatar-fallback">{fallback}</span>
       )}
     </div>
   );

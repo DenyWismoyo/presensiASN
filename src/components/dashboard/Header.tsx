@@ -129,7 +129,7 @@ export default function Header() {
       roles: ["admin", "atasan"],
     },
     {
-      name: "Data Pegawai ASN",
+      name: "Data Pegawai",
       href: "/pegawai",
       icon: Users,
       roles: ["admin"],
@@ -154,7 +154,7 @@ export default function Header() {
 
   return (
     <>
-      <header className="h-16 bg-white border-b border-slate-200/80 px-4 sm:px-6 flex items-center justify-between shadow-xs sticky top-0 z-30">
+      <header className="header-glass">
         {/* Left: Hamburger (Mobile) + Brand Logo + Desktop Clock */}
         <div className="flex items-center gap-2.5 text-xs">
           {/* Mobile Hamburger Button */}
@@ -178,7 +178,7 @@ export default function Header() {
                 SI-PRESENSI
               </span>
               <span className="block text-[9px] text-emerald-700 font-semibold leading-none mt-0.5">
-                ASN KINERJA
+                PRESENSI KINERJA
               </span>
             </div>
           </div>
@@ -217,10 +217,10 @@ export default function Header() {
             />
             <div className="hidden lg:block text-left">
               <div className="text-xs font-semibold text-slate-900 leading-tight">
-                {user?.nama || "Pegawai ASN"}
+                {user?.nama || "Pegawai"}
               </div>
               <div className="text-[10px] text-slate-500 leading-tight">
-                NIP: {user?.nip || "-"} • {user?.golongan?.split(" - ")[0]}
+                NIP / ID: {user?.nip || "-"} • {user?.golongan?.split(" - ")[0]}
               </div>
             </div>
           </div>
@@ -256,7 +256,7 @@ export default function Header() {
                   <Building2 className="w-4 h-4" />
                 </div>
                 <div>
-                  <span className="font-bold text-xs text-white block">SI-PRESENSI ASN</span>
+                  <span className="font-bold text-xs text-white block">SI-PRESENSI</span>
                   <span className="text-[10px] text-emerald-400 font-semibold block">Semua Modul Dinas</span>
                 </div>
               </div>
@@ -272,8 +272,8 @@ export default function Header() {
 
             {/* Profile Card in Drawer */}
             <div className="p-3.5 m-3 rounded-xl bg-slate-800/80 border border-slate-700/80 space-y-1">
-              <div className="text-xs font-bold text-white truncate">{user?.nama || "Pegawai ASN"}</div>
-              <div className="text-[10px] text-slate-400">NIP: {user?.nip || "-"}</div>
+              <div className="text-xs font-bold text-white truncate">{user?.nama || "Pegawai"}</div>
+              <div className="text-[10px] text-slate-400">NIP/ID: {user?.nip || "-"}</div>
               <div className="text-[10px] text-emerald-400 font-medium truncate">{user?.instansi}</div>
               <div className="pt-1 flex items-center gap-1.5">
                 <Badge variant={getRoleBadgeVariant(user?.role)} className="text-[9px] px-2 py-0">
@@ -322,7 +322,7 @@ export default function Header() {
                 className="w-full justify-start text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 h-10 px-3"
               >
                 <LogOut className="w-4 h-4 mr-2" />
-                Keluar Sesi ASN
+                Keluar Sesi
               </Button>
             </div>
           </div>

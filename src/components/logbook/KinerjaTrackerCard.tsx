@@ -42,7 +42,7 @@ export default function KinerjaTrackerCard({
                 </Badge>
               </div>
               <p className="text-[11px] text-emerald-200/70">
-                Target regulasi harian: <strong>{targetPoin} Poin</strong> (Standar Efektif ASN)
+                Target regulasi harian: <strong>{targetPoin} Poin</strong> (Standar Efektif)
               </p>
             </div>
           </div>

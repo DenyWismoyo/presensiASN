@@ -17,6 +17,7 @@ import {
   ChevronRight,
   FileText,
   Calendar,
+  Timer,
 } from "lucide-react";
 
 export default function Sidebar() {
@@ -31,7 +32,7 @@ export default function Sidebar() {
       roles: ["admin", "atasan", "pegawai"],
     },
     {
-      name: "Presensi Harian",
+      name: "Kehadiran (Hub)",
       href: "/presensi",
       icon: ClockCheck,
       roles: ["admin", "atasan", "pegawai"],
@@ -40,12 +41,6 @@ export default function Sidebar() {
       name: "Laporan Kegiatan (LKH)",
       href: "/laporan",
       icon: FileSpreadsheet,
-      roles: ["admin", "atasan", "pegawai"],
-    },
-    {
-      name: "Pengajuan Izin & Cuti",
-      href: "/izin",
-      icon: FileText,
       roles: ["admin", "atasan", "pegawai"],
     },
     {
@@ -67,7 +62,7 @@ export default function Sidebar() {
       roles: ["admin", "atasan"],
     },
     {
-      name: "Data Pegawai ASN",
+      name: "Data Pegawai",
       href: "/pegawai",
       icon: Users,
       roles: ["admin"],
@@ -93,12 +88,12 @@ export default function Sidebar() {
         </div>
         <div>
           <div className="font-bold text-sm tracking-tight text-white flex items-center gap-1.5">
-            SI-PRESENSI
+            TECHNO SIGN
             <span className="text-[10px] px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-semibold">
-              ASN
+              SMART
             </span>
           </div>
-          <p className="text-[11px] text-slate-400">BKPSDM Terpadu</p>
+          <p className="text-[11px] text-slate-400">UPTD KST Solo Technopark</p>
         </div>
       </div>
 

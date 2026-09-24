@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { usePegawaiList, useCreatePegawaiMutation, useDeletePegawaiMutation } from "@/hooks/usePegawai";
+import { usePegawaiList, useCreatePegawaiMutation, useDeletePegawaiMutation, useUpdatePegawaiMutation } from "@/hooks/usePegawai";
 import { useKantorList } from "@/hooks/useKantor";
 import { UserProfile, UserRole } from "@/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -31,6 +31,9 @@ import {
   X,
   UserCheck,
   Briefcase,
+  Pencil,
+  UserCog,
+  ChevronDown,
 } from "lucide-react";
 
 export const DAFTAR_GOLONGAN_ASN = [
@@ -90,6 +93,7 @@ export default function PegawaiManagementPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedKantor, setSelectedKantor] = useState("all");
   const [selectedRole, setSelectedRole] = useState<string>("all");
+  const [selectedDepartment, setSelectedDepartment] = useState("all");
 
   const { data: kantorList = [] } = useKantorList(user?.orgId);
   const {
@@ -100,15 +104,30 @@ export default function PegawaiManagementPage() {
     search: searchQuery,
     kantorId: selectedKantor,
     role: selectedRole === "all" ? undefined : (selectedRole as UserRole),
+    departmentName: selectedDepartment === "all" ? undefined : selectedDepartment,
   });
+
+  // Fetch unfiltered list for dropdowns
+  const { data: allPegawai = [] } = usePegawaiList();
+  
+  const departmentList = useMemo(() => {
+    const deps = new Set(allPegawai.map(p => p.departmentName).filter(Boolean));
+    return Array.from(deps).sort();
+  }, [allPegawai]);
 
   const createMutation = useCreatePegawaiMutation();
   const deleteMutation = useDeletePegawaiMutation();
+  const updateMutation = useUpdatePegawaiMutation();
 
   // Dialog State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [alertMessage, setAlertMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  // Edit State
+  const [editingPegawai, setEditingPegawai] = useState<UserProfile | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editForm, setEditForm] = useState<Partial<UserProfile>>({});
 
   // Form State
   const [formData, setFormData] = useState({
@@ -186,7 +205,7 @@ export default function PegawaiManagementPage() {
         jabatan: formData.jabatan,
         golongan: formData.golongan,
         kantorId: kantorObj?.id || "kantor-stp",
-        namaKantor: kantorObj?.namaKantor || "Solo Teknopark",
+        namaKantor: kantorObj?.namaKantor || "Kantor Pusat",
         departmentName: formData.departmentName,
         atasanId: atasanObj?.id,
         atasanNama: atasanObj?.nama,
@@ -232,12 +251,67 @@ export default function PegawaiManagementPage() {
     }
   };
 
+  // ── Edit Pegawai Handlers ─────────────────────────────────────────────────
+
+  const handleOpenEditModal = (targetUser: UserProfile) => {
+    setEditingPegawai(targetUser);
+    setEditForm({
+      jabatan: targetUser.jabatan || "",
+      golongan: targetUser.golongan || "III/a - Penata Muda",
+      departmentName: targetUser.departmentName || "",
+      kantorId: targetUser.kantorId || "",
+      atasanId: targetUser.atasanId || "",
+      atasanNama: targetUser.atasanNama || "",
+      nomorHp: targetUser.nomorHp || "",
+      role: targetUser.role,
+    });
+    setAlertMessage(null);
+    setIsEditModalOpen(true);
+  };
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingPegawai || !isAdmin) return;
+
+    const kantorObj = kantorList.find((k) => k.id === editForm.kantorId);
+    const atasanObj = atasanList.find((a) => a.id === editForm.atasanId);
+
+    const payload: Partial<UserProfile> = {
+      jabatan: editForm.jabatan,
+      golongan: editForm.golongan,
+      departmentName: editForm.departmentName,
+      kantorId: kantorObj?.id || editForm.kantorId,
+      namaKantor: kantorObj?.namaKantor,
+      atasanId: atasanObj?.id || editForm.atasanId || "",
+      atasanNama: atasanObj?.nama || "",
+      nomorHp: editForm.nomorHp,
+      role: editForm.role as UserRole,
+    };
+
+    try {
+      const res = await updateMutation.mutateAsync({ userId: editingPegawai.id, payload });
+      if (res.success) {
+        setAlertMessage({ type: "success", text: "Data pegawai berhasil diperbarui." });
+        await refetch();
+        setTimeout(() => {
+          setIsEditModalOpen(false);
+          setEditingPegawai(null);
+          setAlertMessage(null);
+        }, 1800);
+      } else {
+        setAlertMessage({ type: "error", text: res.message || "Gagal memperbarui data." });
+      }
+    } catch (err) {
+      setAlertMessage({ type: "error", text: (err as Error).message || "Terjadi kesalahan." });
+    }
+  };
+
   return (
     <div className="space-y-6 pb-20 md:pb-6">
       <MobilePageHeader title="Direktori Pegawai ASN" backHref="/" />
 
       {/* Hero Stats Card */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-slate-900 via-emerald-950 to-slate-900 p-5 md:p-6 text-white shadow-md border border-emerald-800/30">
+      <div className="relative overflow-hidden rounded-none sm:rounded-2xl border-x-0 sm:border border-emerald-800/30 bg-gradient-to-r from-slate-900 via-emerald-950 to-slate-900 p-5 md:p-6 text-white shadow-none sm:shadow-md">
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-1">
             <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[11px] font-medium border border-emerald-400/30">
@@ -285,7 +359,7 @@ export default function PegawaiManagementPage() {
       </div>
 
       {/* Filter & Search Bar */}
-      <Card className="border-slate-200 shadow-xs">
+      <Card>
         <CardContent className="p-4 space-y-3">
           <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center">
             {/* Search Box */}
@@ -301,7 +375,7 @@ export default function PegawaiManagementPage() {
             </div>
 
             {/* Filter Kantor */}
-            <div className="w-full md:w-56">
+            <div className="w-full md:w-48">
               <select
                 value={selectedKantor}
                 onChange={(e) => setSelectedKantor(e.target.value)}
@@ -311,6 +385,22 @@ export default function PegawaiManagementPage() {
                 {kantorList.map((k) => (
                   <option key={k.id} value={k.id}>
                     {k.namaKantor}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Filter Unit/Subdivisi */}
+            <div className="w-full md:w-48">
+              <select
+                value={selectedDepartment}
+                onChange={(e) => setSelectedDepartment(e.target.value)}
+                className="w-full text-xs h-10 rounded-md border border-slate-200 bg-white px-3 text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
+              >
+                <option value="all">Semua Subdivisi / Unit</option>
+                {departmentList.map((dep) => (
+                  <option key={dep} value={dep}>
+                    {dep}
                   </option>
                 ))}
               </select>
@@ -413,7 +503,7 @@ export default function PegawaiManagementPage() {
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-1 text-slate-700 font-medium">
                           <Building2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                          <span>{p.namaKantor || "Solo Teknopark"}</span>
+                          <span>{p.namaKantor || "Kantor Pusat"}</span>
                         </div>
                       </td>
 
@@ -435,16 +525,27 @@ export default function PegawaiManagementPage() {
                       {/* Actions */}
                       {isAdmin && (
                         <td className="py-3 px-4 text-right">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            disabled={p.id === user?.id}
-                            onClick={() => handleDeleteUser(p)}
-                            className="h-8 w-8 text-slate-400 hover:text-rose-600 hover:bg-rose-50"
-                            title="Nonaktifkan Akun"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
+                          <div className="flex items-center justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleOpenEditModal(p)}
+                              className="h-8 w-8 text-slate-400 hover:text-violet-600 hover:bg-violet-50"
+                              title="Edit Data Pegawai"
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              disabled={p.id === user?.id}
+                              onClick={() => handleDeleteUser(p)}
+                              className="h-8 w-8 text-slate-400 hover:text-rose-600 hover:bg-rose-50"
+                              title="Nonaktifkan Akun"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
                         </td>
                       )}
                     </tr>
@@ -492,7 +593,7 @@ export default function PegawaiManagementPage() {
                     <div className="text-[11px] space-y-1 bg-slate-50 p-2.5 rounded-lg text-slate-600">
                       <div className="flex items-center gap-1.5">
                         <Building2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                        <span>Kantor: {p.namaKantor || "Solo Teknopark"}</span>
+                        <span>Kantor: {p.namaKantor || "Kantor Pusat"}</span>
                       </div>
                       {p.atasanNama && (
                         <div className="flex items-center gap-1.5">
@@ -782,6 +883,188 @@ export default function PegawaiManagementPage() {
                   className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs h-9 px-5 shadow-sm"
                 >
                   {createMutation.isPending ? "Mendaftarkan Akun..." : "Daftarkan Akun ASN"}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── Edit Pegawai Modal ────────────────────────────────────────────── */}
+      {isEditModalOpen && editingPegawai && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg border border-slate-200 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-5 border-b border-slate-100">
+              <div>
+                <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                  <UserCog className="w-5 h-5 text-violet-600" />
+                  Edit Data Pegawai
+                </h2>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  {editingPegawai.nama} — NIP {editingPegawai.nip}
+                </p>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => { setIsEditModalOpen(false); setEditingPegawai(null); }}
+                className="h-8 w-8 text-slate-400 hover:text-slate-700"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+
+            {alertMessage && (
+              <div
+                className={`mx-5 mt-4 p-3 rounded-xl text-xs flex items-center gap-2.5 border ${
+                  alertMessage.type === "success"
+                    ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+                    : "bg-rose-50 text-rose-800 border-rose-200"
+                }`}
+              >
+                {alertMessage.type === "success" ? (
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                ) : (
+                  <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                )}
+                {alertMessage.text}
+              </div>
+            )}
+
+            <form onSubmit={handleSaveEdit} className="p-5 space-y-4">
+              {/* Role */}
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold text-slate-700">Role / Jabatan Fungsional</Label>
+                <select
+                  value={editForm.role || "pegawai"}
+                  onChange={(e) => setEditForm({ ...editForm, role: e.target.value as UserRole })}
+                  className="w-full text-xs h-9 rounded-md border border-slate-200 bg-white px-3 text-slate-800 focus:ring-2 focus:ring-violet-500"
+                >
+                  <option value="pegawai">Pegawai</option>
+                  <option value="atasan">Atasan / Pejabat Penilai</option>
+                  <option value="admin">Admin BKPSDM</option>
+                </select>
+              </div>
+
+              {/* Jabatan */}
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold text-slate-700">Jabatan</Label>
+                <Input
+                  type="text"
+                  value={editForm.jabatan || ""}
+                  onChange={(e) => setEditForm({ ...editForm, jabatan: e.target.value })}
+                  placeholder="Contoh: Pranata Komputer Ahli Pertama"
+                  className="text-xs h-9"
+                />
+              </div>
+
+              {/* Golongan */}
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold text-slate-700">Golongan / Pangkat</Label>
+                <select
+                  value={editForm.golongan || "III/a - Penata Muda"}
+                  onChange={(e) => setEditForm({ ...editForm, golongan: e.target.value })}
+                  className="w-full text-xs h-9 rounded-md border border-slate-200 bg-white px-3 text-slate-800 focus:ring-2 focus:ring-violet-500"
+                >
+                  {DAFTAR_GOLONGAN_ASN.map((g) => (
+                    <option key={g.kode} value={g.kode}>{g.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Divisi */}
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold text-slate-700">Bidang / Divisi</Label>
+                <Input
+                  type="text"
+                  value={editForm.departmentName || ""}
+                  onChange={(e) => setEditForm({ ...editForm, departmentName: e.target.value })}
+                  placeholder="Contoh: Subdivisi Rekayasa Perangkat Lunak"
+                  className="text-xs h-9"
+                />
+              </div>
+
+              {/* Kantor */}
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold text-slate-700 flex items-center gap-1">
+                  <Building2 className="w-3.5 h-3.5" /> Kantor / Unit Kerja
+                </Label>
+                <select
+                  value={editForm.kantorId || ""}
+                  onChange={(e) => setEditForm({ ...editForm, kantorId: e.target.value })}
+                  className="w-full text-xs h-9 rounded-md border border-slate-200 bg-white px-3 text-slate-800 focus:ring-2 focus:ring-violet-500"
+                >
+                  <option value="">— Pilih Kantor —</option>
+                  {kantorList.map((k) => (
+                    <option key={k.id} value={k.id}>{k.namaKantor}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Atasan Langsung — FITUR UTAMA */}
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                  <UserCheck className="w-3.5 h-3.5 text-teal-600" />
+                  Atasan Langsung (Pejabat Penilai Kinerja)
+                </Label>
+                <select
+                  value={editForm.atasanId || ""}
+                  onChange={(e) => {
+                    const selected = atasanList.find((a) => a.id === e.target.value);
+                    setEditForm({
+                      ...editForm,
+                      atasanId: e.target.value,
+                      atasanNama: selected?.nama || "",
+                    });
+                  }}
+                  className="w-full text-xs h-9 rounded-md border border-slate-200 bg-white px-3 text-slate-800 focus:ring-2 focus:ring-violet-500"
+                >
+                  <option value="">— Mandiri / Tidak Ada Atasan —</option>
+                  {atasanList
+                    .filter((a) => a.id !== editingPegawai.id) // Tidak bisa jadi atasan diri sendiri
+                    .map((a) => (
+                      <option key={a.id} value={a.id}>
+                        {a.nama} — {a.jabatan || a.role}
+                      </option>
+                    ))}
+                </select>
+                {editForm.atasanNama && (
+                  <p className="text-[10px] text-teal-600 flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3" />
+                    Atasan dipilih: <strong>{editForm.atasanNama}</strong>
+                  </p>
+                )}
+              </div>
+
+              {/* No HP */}
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold text-slate-700 flex items-center gap-1">
+                  <Phone className="w-3.5 h-3.5" /> Nomor HP / WhatsApp
+                </Label>
+                <Input
+                  type="tel"
+                  value={editForm.nomorHp || ""}
+                  onChange={(e) => setEditForm({ ...editForm, nomorHp: e.target.value })}
+                  placeholder="08xx-xxxx-xxxx"
+                  className="text-xs h-9"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-slate-100">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => { setIsEditModalOpen(false); setEditingPegawai(null); }}
+                  className="text-xs h-9 px-4"
+                >
+                  Batal
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={updateMutation.isPending}
+                  className="bg-violet-600 hover:bg-violet-700 text-white font-semibold text-xs h-9 px-5 shadow-sm"
+                >
+                  {updateMutation.isPending ? "Menyimpan..." : "Simpan Perubahan"}
                 </Button>
               </div>
             </form>

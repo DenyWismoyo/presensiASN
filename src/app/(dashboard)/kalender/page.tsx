@@ -151,7 +151,7 @@ export default function KalenderPage() {
             Kalender Kerja & Rekap Presensi Bulanan
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            Peta absensi bulanan dan evaluasi disiplin kerja ASN Solo Teknopark
+            Peta absensi bulanan dan evaluasi disiplin kerja Kantor Pusat
           </p>
         </div>
 
@@ -182,7 +182,7 @@ export default function KalenderPage() {
 
       {/* Baris Ringkasan Metrik Bulanan */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <Card className="border-slate-200/80 shadow-xs">
+        <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <span className="text-xs text-slate-500 font-medium">Tingkat Disiplin</span>
@@ -195,7 +195,7 @@ export default function KalenderPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-slate-200/80 shadow-xs">
+        <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <span className="text-xs text-slate-500 font-medium">Hadir Tepat Waktu</span>
@@ -208,7 +208,7 @@ export default function KalenderPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-slate-200/80 shadow-xs">
+        <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <span className="text-xs text-slate-500 font-medium">Terlambat Masuk</span>
@@ -221,7 +221,7 @@ export default function KalenderPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-slate-200/80 shadow-xs">
+        <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <span className="text-xs text-slate-500 font-medium">Lokasi Kantor</span>
@@ -229,14 +229,14 @@ export default function KalenderPage() {
                 <Building className="w-4 h-4" />
               </div>
             </div>
-            <div className="text-sm font-bold text-slate-900 mt-2 truncate">Solo Teknopark</div>
+            <div className="text-sm font-bold text-slate-900 mt-2 truncate">Kantor Pusat</div>
             <p className="text-[10px] text-purple-700 mt-0.5">Kawasan Surakarta</p>
           </CardContent>
         </Card>
       </div>
 
       {/* Grid Kalender Bulanan */}
-      <Card className="border-slate-200/80 shadow-xs">
+      <Card>
         <CardHeader className="pb-3 border-b border-slate-100 flex flex-row items-center justify-between">
           <div>
             <CardTitle className="text-base font-bold">

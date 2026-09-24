@@ -509,7 +509,7 @@ export default function LaporanPage() {
         <div className="space-y-6">
           <StorageMeter />
 
-          <Card className="border-slate-200/80 shadow-sm">
+          <Card>
             <CardHeader className="pb-3 flex flex-row items-center justify-between">
               <div>
                 <CardTitle className="text-sm sm:text-base font-bold flex items-center gap-2">
@@ -573,7 +573,7 @@ export default function LaporanPage() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Form Tambah Kegiatan (5 Cols) */}
           <div className={cn("lg:col-span-5 space-y-6", activeTab === "form" ? "block" : "hidden lg:block")}>
-            <Card className="border-slate-200/80 shadow-sm">
+            <Card>
               <CardHeader className="pb-4">
                 <CardTitle className="text-base font-bold flex items-center gap-2">
                   <Plus className="w-4 h-4 text-emerald-600" />
@@ -833,7 +833,7 @@ export default function LaporanPage() {
 
           {/* List Kegiatan Hari Ini (7 Cols) */}
           <div className={cn("lg:col-span-7 space-y-4", activeTab === "list" ? "block" : "hidden lg:block")}>
-            <Card className="border-slate-200/80 shadow-sm">
+            <Card>
               <CardHeader className="pb-3 flex flex-row items-center justify-between">
                 <div>
                   <CardTitle className="text-base font-bold flex items-center gap-2">

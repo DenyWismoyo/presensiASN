@@ -34,7 +34,7 @@ export default function ProfilPage() {
   return (
     <div className="space-y-6 max-w-2xl mx-auto">
       {/* Header */}
-      <div>
+      <div className="px-4 sm:px-0">
         <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
           <IdCard className="w-6 h-6 text-emerald-600" />
           Kartu Identitas Digital ASN
@@ -45,7 +45,7 @@ export default function ProfilPage() {
       </div>
 
       {/* ASN Digital ID Card */}
-      <Card className="border-slate-200/90 shadow-md overflow-hidden bg-gradient-to-b from-white to-slate-50">
+      <Card className="overflow-hidden bg-gradient-to-b from-white to-slate-50">
         {/* Card Header Pattern */}
         <div className="bg-gradient-to-r from-emerald-800 via-teal-800 to-slate-900 p-6 text-white relative">
           <div className="flex items-center justify-between">

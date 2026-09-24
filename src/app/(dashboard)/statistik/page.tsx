@@ -139,7 +139,7 @@ export default function StatistikPage() {
       </div>
 
       {/* Hero Header & Filter Controls (Disembunyikan saat Print) */}
-      <div className="print:hidden relative overflow-hidden rounded-2xl bg-gradient-to-r from-slate-900 via-teal-950 to-slate-900 p-5 md:p-6 text-white shadow-md border border-teal-800/30">
+      <div className="print:hidden relative overflow-hidden rounded-none sm:rounded-2xl border-x-0 sm:border border-teal-800/30 bg-gradient-to-r from-slate-900 via-teal-950 to-slate-900 p-5 md:p-6 text-white shadow-none sm:shadow-md">
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-1">
             <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-teal-500/20 text-teal-300 text-[11px] font-medium border border-teal-400/30">
@@ -225,7 +225,7 @@ export default function StatistikPage() {
       {/* 4 Kartu Metrik KPI Utama */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
         {/* KPI 1: Kehadiran Rata-rata */}
-        <Card className="border-slate-200 shadow-xs">
+        <Card>
           <CardContent className="p-4 space-y-1.5">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-slate-500">Tingkat Kehadiran</span>
@@ -244,7 +244,7 @@ export default function StatistikPage() {
         </Card>
 
         {/* KPI 2: Ketepatan Jam Masuk */}
-        <Card className="border-slate-200 shadow-xs">
+        <Card>
           <CardContent className="p-4 space-y-1.5">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-slate-500">Disiplin Waktu</span>
@@ -262,7 +262,7 @@ export default function StatistikPage() {
         </Card>
 
         {/* KPI 3: Capaian Poin SKP */}
-        <Card className="border-slate-200 shadow-xs">
+        <Card>
           <CardContent className="p-4 space-y-1.5">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-slate-500">Rata-Rata Poin LKH</span>
@@ -281,7 +281,7 @@ export default function StatistikPage() {
         </Card>
 
         {/* KPI 4: Kepatuhan Lapor LKH */}
-        <Card className="border-slate-200 shadow-xs">
+        <Card>
           <CardContent className="p-4 space-y-1.5">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-slate-500">Kepatuhan LKH</span>
@@ -302,7 +302,7 @@ export default function StatistikPage() {
       {/* Visualisasi Tren Kehadiran & Distribusi Status Presensi */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Visual Batang: Tren Kehadiran Harian */}
-        <Card className="lg:col-span-2 border-slate-200 shadow-xs">
+        <Card className="lg:col-span-2">
           <CardHeader className="p-4 pb-2">
             <div className="flex items-center justify-between">
               <div>
@@ -372,7 +372,7 @@ export default function StatistikPage() {
         </Card>
 
         {/* Distribusi Presensi Bulanan */}
-        <Card className="border-slate-200 shadow-xs">
+        <Card>
           <CardHeader className="p-4 pb-2">
             <CardTitle className="text-sm font-bold text-slate-900">
               Distribusi Status Presensi
@@ -450,7 +450,7 @@ export default function StatistikPage() {
       </div>
 
       {/* Tabel Rekapitulasi Individu ASN */}
-      <Card className="border-slate-200 shadow-xs">
+      <Card>
         <CardHeader className="p-4 pb-3 flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-100">
           <div>
             <CardTitle className="text-sm font-bold text-slate-900">
