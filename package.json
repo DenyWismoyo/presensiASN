@@ -52,13 +52,5 @@
     "typescript": "^5",
     "vitest": "^5.0.1"
   },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "core-js",
-      "esbuild",
-      "@firebase/util",
-      "protobufjs"
-    ]
-  },
   "packageManager": "pnpm@12.4.1"
 }
