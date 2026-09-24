@@ -47,26 +47,26 @@ function getDisiplinBadge(predikat: string) {
   switch (predikat) {
     case "Sangat Baik":
       return (
-        <Badge variant="outline" className="bg-emerald-500/10 text-emerald-700 border-emerald-200 text-[10px] font-semibold">
+        <Badge variant="success" className="text-[10px] font-semibold">
           Sangat Baik
         </Badge>
       );
     case "Baik":
       return (
-        <Badge variant="outline" className="bg-teal-500/10 text-teal-700 border-teal-200 text-[10px] font-semibold">
+        <Badge variant="default" className="text-[10px] font-semibold">
           Baik
         </Badge>
       );
     case "Cukup":
       return (
-        <Badge variant="outline" className="bg-amber-500/10 text-amber-700 border-amber-200 text-[10px] font-semibold">
+        <Badge variant="warning" className="text-[10px] font-semibold">
           Cukup
         </Badge>
       );
     case "Perlu Pembinaan":
     default:
       return (
-        <Badge variant="outline" className="bg-rose-500/10 text-rose-700 border-rose-200 text-[10px] font-semibold">
+        <Badge variant="destructive" className="text-[10px] font-semibold">
           Perlu Pembinaan
         </Badge>
       );
@@ -158,7 +158,7 @@ export default function StatistikPage() {
             <Button
               onClick={handlePrint}
               variant="outline"
-              className="bg-white/10 hover:bg-white/20 text-white border-white/20 text-xs h-10 px-4"
+              className="btn-glass h-10 px-4"
             >
               <Printer className="w-4 h-4 mr-2" />
               Cetak Rekap

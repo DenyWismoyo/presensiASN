@@ -370,7 +370,7 @@ export default function LaporanPage() {
               onClick={handleSaveDraft}
               disabled={saveLKHMutation.isPending}
               variant="outline"
-              className="border-slate-300 hover:bg-slate-100 text-slate-700 text-xs h-9 font-semibold"
+              className="btn-outline btn-sm text-xs font-semibold"
             >
               {saveLKHMutation.isPending ? (
                 <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin text-teal-600" />
@@ -385,7 +385,7 @@ export default function LaporanPage() {
             <Button
               onClick={handleSubmitLKH}
               disabled={submitLKHMutation.isPending || saveLKHMutation.isPending}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs h-9 font-semibold"
+              className="btn-primary btn-sm text-xs font-semibold"
             >
               {submitLKHMutation.isPending ? (
                 <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
@@ -671,7 +671,7 @@ export default function LaporanPage() {
                         type="button"
                         size="sm"
                         onClick={() => handleApplyDetected(detectedAktivitas)}
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] h-7 px-2.5 shrink-0"
+                        className="btn-primary h-7 px-2.5 text-[11px] shrink-0 rounded-lg"
                       >
                         Terapkan
                       </Button>
@@ -820,7 +820,7 @@ export default function LaporanPage() {
 
                   <Button
                     type="submit"
-                    className="w-full bg-slate-900 hover:bg-slate-800 text-white text-xs h-10 font-semibold"
+                    className="w-full btn-secondary h-10 text-xs font-semibold rounded-2xl"
                   >
                     <Plus className="w-4 h-4 mr-1.5" />
                     Simpan Kegiatan ke Logbook

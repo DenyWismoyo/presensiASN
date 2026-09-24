@@ -170,15 +170,15 @@ export default function Header() {
 
           {/* Mobile Brand Logo */}
           <div className="flex md:hidden items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-600 to-teal-700 flex items-center justify-center text-white shadow-sm">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center text-primary-foreground shadow-sm">
               <Building2 className="w-4 h-4" />
             </div>
             <div>
-              <span className="font-bold text-xs text-slate-900 leading-none">
-                SI-PRESENSI
+              <span className="font-bold text-xs text-foreground leading-none">
+                TECHNO SIGN
               </span>
-              <span className="block text-[9px] text-emerald-700 font-semibold leading-none mt-0.5">
-                PRESENSI KINERJA
+              <span className="block text-[9px] text-primary font-semibold leading-none mt-0.5">
+                SMART
               </span>
             </div>
           </div>
@@ -248,33 +248,33 @@ export default function Header() {
           />
 
           {/* Drawer Content */}
-          <div className="relative w-72 max-w-[80vw] bg-slate-900 text-white h-full flex flex-col z-10 shadow-2xl border-r border-slate-800 animate-in slide-in-from-left duration-200">
+          <div className="relative w-72 max-w-[80vw] bg-card text-card-foreground h-full flex flex-col z-10 shadow-2xl border-r border-border animate-in slide-in-from-left duration-200">
             {/* Header Drawer */}
-            <div className="p-4 border-b border-slate-800 flex items-center justify-between">
+            <div className="p-4 border-b border-border/50 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-700 flex items-center justify-center text-white shadow-sm">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center text-primary-foreground shadow-sm">
                   <Building2 className="w-4 h-4" />
                 </div>
                 <div>
-                  <span className="font-bold text-xs text-white block">SI-PRESENSI</span>
-                  <span className="text-[10px] text-emerald-400 font-semibold block">Semua Modul Dinas</span>
+                  <span className="font-bold text-xs text-foreground block">TECHNO SIGN</span>
+                  <span className="text-[10px] text-primary font-semibold block">SMART</span>
                 </div>
               </div>
 
               <button
                 type="button"
                 onClick={() => setIsDrawerOpen(false)}
-                className="w-8 h-8 rounded-lg bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center"
+                className="w-8 h-8 rounded-lg bg-secondary text-muted-foreground hover:text-foreground flex items-center justify-center"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             {/* Profile Card in Drawer */}
-            <div className="p-3.5 m-3 rounded-xl bg-slate-800/80 border border-slate-700/80 space-y-1">
-              <div className="text-xs font-bold text-white truncate">{user?.nama || "Pegawai"}</div>
-              <div className="text-[10px] text-slate-400">NIP/ID: {user?.nip || "-"}</div>
-              <div className="text-[10px] text-emerald-400 font-medium truncate">{user?.instansi}</div>
+            <div className="p-3.5 m-3 rounded-xl bg-secondary/50 border border-border/50 space-y-1">
+              <div className="text-xs font-bold text-foreground truncate">{user?.nama || "Pegawai"}</div>
+              <div className="text-[10px] text-muted-foreground">NIP/ID: {user?.nip || "-"}</div>
+              <div className="text-[10px] text-primary font-medium truncate">{user?.instansi}</div>
               <div className="pt-1 flex items-center gap-1.5">
                 <Badge variant={getRoleBadgeVariant(user?.role)} className="text-[9px] px-2 py-0">
                   {getRoleLabel(user?.role)}
@@ -284,7 +284,7 @@ export default function Header() {
 
             {/* Full Menu Links */}
             <div className="flex-1 overflow-y-auto px-3 py-2 space-y-1">
-              <div className="px-2 pb-1.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+              <div className="px-2 pb-1.5 text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
                 Daftar Lengkap Menu
               </div>
 
@@ -300,26 +300,26 @@ export default function Header() {
                     className={cn(
                       "flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-medium transition-all active:scale-98",
                       isActive
-                        ? "bg-emerald-600/25 text-emerald-400 border border-emerald-500/40 font-semibold"
-                        : "text-slate-300 hover:bg-slate-800/80 hover:text-white"
+                        ? "bg-primary/10 text-primary border border-primary/20 font-semibold shadow-sm"
+                        : "text-muted-foreground hover:bg-secondary hover:text-foreground"
                     )}
                   >
                     <div className="flex items-center gap-3">
-                      <Icon className={cn("w-4 h-4", isActive ? "text-emerald-400" : "text-slate-400")} />
+                      <Icon className={cn("w-4 h-4", isActive ? "text-primary" : "text-muted-foreground")} />
                       <span>{item.name}</span>
                     </div>
-                    {isActive && <ChevronRight className="w-3.5 h-3.5 text-emerald-400" />}
+                    {isActive && <ChevronRight className="w-3.5 h-3.5 text-primary" />}
                   </Link>
                 );
               })}
             </div>
 
             {/* Bottom Action */}
-            <div className="p-3 border-t border-slate-800">
+            <div className="p-3 border-t border-border/50">
               <Button
                 variant="ghost"
                 onClick={handleLogout}
-                className="w-full justify-start text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 h-10 px-3"
+                className="w-full justify-start text-xs text-destructive hover:text-destructive hover:bg-destructive/10 h-10 px-3"
               >
                 <LogOut className="w-4 h-4 mr-2" />
                 Keluar Sesi

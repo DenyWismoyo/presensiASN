@@ -329,7 +329,7 @@ export default function PegawaiManagementPage() {
           {isAdmin && (
             <Button
               onClick={handleOpenModal}
-              className="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs h-10 px-4 shadow-md shadow-emerald-900/40 shrink-0"
+              className="btn-primary h-10 text-xs px-4 shadow-md shrink-0 rounded-2xl"
             >
               <UserPlus className="w-4 h-4 mr-2" />
               Tambah Pegawai Baru
@@ -880,7 +880,7 @@ export default function PegawaiManagementPage() {
                 <Button
                   type="submit"
                   disabled={createMutation.isPending}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs h-9 px-5 shadow-sm"
+                  className="btn-primary btn-sm text-xs px-5 shadow-sm"
                 >
                   {createMutation.isPending ? "Mendaftarkan Akun..." : "Daftarkan Akun ASN"}
                 </Button>
@@ -1062,7 +1062,7 @@ export default function PegawaiManagementPage() {
                 <Button
                   type="submit"
                   disabled={updateMutation.isPending}
-                  className="bg-violet-600 hover:bg-violet-700 text-white font-semibold text-xs h-9 px-5 shadow-sm"
+                  className="btn-primary btn-sm text-xs px-5 shadow-sm"
                 >
                   {updateMutation.isPending ? "Menyimpan..." : "Simpan Perubahan"}
                 </Button>

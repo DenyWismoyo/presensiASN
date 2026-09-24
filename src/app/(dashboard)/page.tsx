@@ -128,7 +128,7 @@ export default function DashboardPage() {
       </motion.div>
 
       {/* Grid: Status Hari Ini (Live Radar Presensi & LKH) */}
-      <motion.div variants={itemVariants} className="grid-dashboard items-start">
+      <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 items-start">
         {/* Radar Presensi Real-Time & 1-Tap Action */}
         <QuickPresensiWidget />
 
@@ -190,7 +190,7 @@ export default function DashboardPage() {
       </motion.div>
 
       {/* Statistik Kehadiran Bulanan Berdasarkan Riwayat Nyata */}
-      <motion.div variants={itemVariants} className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 px-3 sm:px-0">
+      <motion.div variants={itemVariants} className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 px-3 sm:px-0">
         <Card className="card-interactive p-4 space-y-1">
           <div className="flex items-center justify-between">
             <span className="text-xs text-slate-500 font-medium">Hadir Tepat Waktu</span>

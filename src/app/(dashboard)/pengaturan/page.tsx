@@ -208,7 +208,7 @@ export default function PengaturanKantorPage() {
             variant="outline"
             onClick={handleSeedDemoData}
             disabled={isSeeding}
-            className="text-xs font-medium h-9 border-slate-300 text-slate-700 hover:bg-slate-100"
+            className="btn-outline btn-sm text-xs font-medium"
           >
             <RotateCcw className={`w-3.5 h-3.5 mr-1.5 ${isSeeding ? "animate-spin" : ""}`} />
             {isSeeding ? "Menyuntikkan Seed..." : "Reset & Inisialisasi Seed Demo (Kantor Pusat)"}
@@ -234,7 +234,7 @@ export default function PengaturanKantorPage() {
                 setShowAddForm(true);
               }
             }}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold h-9 shadow-sm"
+            className="btn-primary btn-sm text-xs font-semibold shadow-sm"
           >
             <Plus className="w-4 h-4 mr-1.5" />
             {showAddForm ? "Tutup Form" : "Tambah Titik Kantor Baru"}
@@ -470,14 +470,14 @@ export default function PengaturanKantorPage() {
                       jamPulangMinimal: "16:00",
                     });
                   }}
-                  className="text-xs"
+                  className="btn-outline btn-sm text-xs"
                 >
                   Batal
                 </Button>
                 <Button
                   type="submit"
                   disabled={saveKantorMutation.isPending}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold"
+                  className="btn-primary btn-sm text-xs font-semibold"
                 >
                   {editingId ? "Simpan Perubahan" : "Simpan Titik Kantor"}
                 </Button>
@@ -579,7 +579,7 @@ export default function PengaturanKantorPage() {
                           size="sm"
                           variant="ghost"
                           onClick={() => handleEditClick(kantor)}
-                          className="h-7 w-7 p-0 text-slate-500 hover:bg-slate-100 hover:text-emerald-700"
+                          className="h-7 w-7 p-0 text-muted-foreground hover:text-primary hover:bg-primary/10"
                           title="Edit Kantor"
                         >
                           <Pencil className="w-3.5 h-3.5" />
@@ -588,7 +588,7 @@ export default function PengaturanKantorPage() {
                           size="sm"
                           variant="ghost"
                           onClick={() => handleDelete(kantor.id, kantor.namaKantor)}
-                          className="h-7 w-7 p-0 text-red-500 hover:bg-red-50 hover:text-red-700"
+                          className="h-7 w-7 p-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
                           title="Hapus Kantor"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
